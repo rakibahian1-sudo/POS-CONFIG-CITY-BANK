@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POS Terminal Config Generator - City Bank</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    body { background-color: #0b1120; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card-bg { background-color: #111827; border: 1px solid #1e293b; }
+    .input-bg { background-color: #0f172a; border: 1px solid #334155; color: #f8fafc; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-slate-800 bg-[#0f172a] px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-lg">
+        ⊞
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-white tracking-wide text-base">POS TERMINAL CONFIG GENERATOR</h1>
+          <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">CITY BANK</span>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-300 border border-teal-500/30">☁ Template Ready</span>
+        </div>
+        <p class="text-xs text-slate-400">Parse Excel data into HDT, TCT & parameter batch configs per TID</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button onclick="loadDemoData()" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-400 flex items-center gap-1.5 transition">
+        ⚡ Load Demo Data
+      </button>
+      <button onclick="resetAll()" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-red-900/40 border border-slate-700 text-xs font-medium text-slate-300 transition">
+        Reset All
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Left Sidebar -->
+    <div class="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
+
+      <!-- 1. Excel File Import -->
+      <div class="card-bg rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold tracking-wider text-slate-300 uppercase">📤 1. EXCEL FILE IMPORT</h2>
+          <span id="fileStatusBadge" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">No file loaded</span>
+        </div>
+
+        <label id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-900/50">
+          <input type="file" id="excelInput" accept=".xlsx, .xls, .csv" class="hidden" />
+          <div class="w-10 h-10 rounded bg-slate-800 flex items-center justify-center text-slate-300 mb-2 text-lg">📊</div>
+          <p class="text-xs font-medium text-slate-200">Drag & drop your Excel sheet here or click to browse</p>
+          <p class="text-[11px] text-slate-500 mt-1">Supports .xlsx, .xls & multi-sheet workbooks</p>
+        </label>
+      </div>
+
+      <!-- 2. Active Section / Phase -->
+      <div class="card-bg rounded-xl p-4">
+        <h2 class="text-xs font-bold tracking-wider text-slate-300 uppercase mb-2">📑 2. ACTIVE SECTION / SHEET</h2>
+        <div id="sheetInfoBanner" class="text-xs px-3 py-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 mb-3">
+          Waiting for Excel file...
+        </div>
+        <label class="block text-[11px] text-slate-400 mb-1">Select Sheet</label>
+        <select id="sheetSelect" onchange="handleSheetChange()" class="w-full input-bg rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500">
+          <option value="">-- No Sheet --</option>
+        </select>
+      </div>
+
+      <!-- 3. Column Mapping -->
+      <div class="card-bg rounded-xl p-4 flex-1">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold tracking-wider text-slate-300 uppercase">🔗 3. COLUMN MAPPING</h2>
+        </div>
+        <div id="mappingWarning" class="text-xs px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 mb-3">
+          ⚠ Upload file or load demo data to map columns
+        </div>
+
+        <div class="space-y-2.5 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">TID (File Name) *</label>
+            <select id="map_tid" onchange="processMappedData()" class="w-full input-bg rounded px-2.5 py-1.5"></select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">MID *</label>
+            <select id="map_mid" onchange="processMappedData()" class="w-full input-bg rounded px-2.5 py-1.5"></select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-400 mb-1">DBA Name 1 (24)</label>
+              <select id="map_dba1" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">DBA Name 2 (28)</label>
+              <select id="map_dba2" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-400 mb-1">ADDR1 (36)</label>
+              <select id="map_addr1" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">ADDR2 (36)</label>
+              <select id="map_addr2" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <div>
+              <label class="block text-slate-400 mb-1">ADDR3</label>
+              <select id="map_addr3" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">ADDR4</label>
+              <select id="map_addr4" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">ADDR5</label>
+              <select id="map_addr5" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Main Panel -->
+    <div class="lg:col-span-8 xl:col-span-9 flex flex-col gap-4">
+
+      <!-- Top Action Bar -->
+      <div class="card-bg rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <button id="tabTableBtn" onclick="switchTab('table')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition">
+            Data Table (<span id="rowCountBadge">0</span>)
+          </button>
+          <button id="tabOutputBtn" onclick="switchTab('output')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            Config Output Preview
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 flex-1 max-w-md">
+          <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Search TID or Merchant..." class="w-full input-bg rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <button onclick="downloadZip()" id="downloadZipBtn" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition" disabled>
+          ⬇ Download ZIP (<span id="zipCountBadge">0</span> .txt)
+        </button>
+      </div>
+
+      <!-- EMI Control Bar -->
+      <div class="card-bg rounded-xl p-3 flex flex-col gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+            <span class="text-xs text-slate-400">☰ EMI Mode:</span>
+            <button id="emiToggleBtn" onclick="toggleEmiMode()" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              EMI=1 (ENABLED)
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+            <span class="text-xs text-slate-400 whitespace-nowrap">📅 Tenor Limit:</span>
+            <input type="text" id="tenorInput" value="3,6,9,12" class="w-full input-bg rounded-lg px-3 py-1.5 text-xs" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="text" id="specificTidsInput" placeholder="Specific TIDs for EMI (e.g. 18037800, 20002421) or leave empty for ALL..." class="flex-1 input-bg rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500" />
+          <button onclick="processMappedData()" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
+            ⚡ Apply EMI Rules
+          </button>
+        </div>
+      </div>
+
+      <!-- Data Table View -->
+      <div id="tableView" class="card-bg rounded-xl flex-1 overflow-hidden flex flex-col min-h-[380px]">
+        <div class="overflow-x-auto flex-1">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 bg-slate-900/80 text-[11px] font-bold text-slate-400 uppercase">
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">TID (FILE NAME)</th>
+                <th class="py-3 px-4">MID</th>
+                <th class="py-3 px-4">DBA NAME (PART 1/2)</th>
+                <th class="py-3 px-4">ADDRESS BREAKDOWN</th>
+                <th class="py-3 px-4">EMI</th>
+                <th class="py-3 px-4 text-right">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody" class="divide-y divide-slate-800/60 text-xs">
+              <tr>
+                <td colspan="7" class="py-20 text-center text-slate-500">
+                  No data loaded. Drag & drop an Excel file or click "Load Demo Data".
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Config Output Preview View -->
+      <div id="outputView" class="card-bg rounded-xl flex-1 p-4 hidden flex-col min-h-[380px]">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-300">Previewing Config File:</span>
+            <select id="previewTidSelect" onchange="updatePreviewBox()" class="input-bg rounded px-3 py-1 text-xs"></select>
+          </div>
+          <button onclick="copyCurrentPreview()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-blue-400 border border-slate-700">
+            📋 Copy Config
+          </button>
+        </div>
+        <textarea id="configPreviewBox" readonly class="w-full flex-1 input-bg rounded-lg p-4 font-mono text-xs text-emerald-300 leading-relaxed focus:outline-none"></textarea>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let workbook = null;
+    let rawSheetData = [];
+    let headers = [];
+    let generatedRecords = [];
+    let emiEnabled = true;
+
+    // Exact City Bank POS Config Template
+    function buildConfigText(item) {
+      const emiFlag = item.emiActive ? "1" : "0";
+      const tenorStr = item.emiActive ? item.tenor : "";
+
+      return `HDT:TID=${item.tid}:MID=${item.mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
+TCT:ADDR1(36)=${item.addr1}:ADDR2(36)=${item.addr2}:ADDR3(36)=${item.addr3}:ADDR4(36)=${item.addr4}:ADDR5(36)=${item.addr5}:MERCHANTNAME1(24)=${item.dba1}:MERCHANTNAME2(28)=${item.dba2}:2489:0000:0000:0000:0000:24896925
+SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
+SIMBIN:BANGLALINK=1:GRAMEENPHONE=0:ROBI=0:OTHERS=0
+IPBIN:IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400
+TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
+MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
+PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
+LIMIT:999:999:001:99999999:50000:500000:500000:${tenorStr}
+CARDEMICHARGEBIN:3,3:6,4:9,6.5:12,8:18,10.5:24,13:36,18
+SLIPPRINT:MERCHANTCOPY=1:CUSTOMERCOPY=0:LOGON=1:CARDDETAILSREPORT=0:SETTLEDETAILSREPORT=0:ERRORTXN=1:PRINTTVR=0:PRINTTSI=0:QRDSPLAY=0:TRANSACTIONSOUND=0:CARDDETAILS=1:PAPERLESS=0
+PRINTLOGO:BANKLOGO=1:MERCHANTLOGO=0
+EXPMASKING:EXPMASKMC=0:EXPMASKCC=0:EXPMASKDT=0:EXPMASKPREAUTH=0:EXPMASKDISP=0:EXPMASKSHOWTXN=0:EXPMASKEMI=0:EXPMASKERRRP=0
+PANMASKING:PANMASKMC=1:PANMASKCC=0:PANMASKDT=1:PANMASKPREAUTH=1:PANMASKDISP=1:PANMASKSHOWTXN=1:PANMASKEMI=1:PANMASKERRRP=1
+EMIBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+LOUNGEBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+MICROATMBIN:5175550000000000,5175559999999999,16:5195070000000000,5195079999999999,16:5286310000000000,5286319999999999,16:4105200000000000,4105209999999999,16:300000000000000,399999999999999,15:6291104200000000,6291104299999999,16:6399960200000000,6399960299999999,16
+PRINTBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+BINWISELIMIT:0001:99999999:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+CDT0:400000000000:499999999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT1:409765000000:409765009999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT2:410520000000:410520999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT3:410517110000:410517119999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT4:410517120000:410517129999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT5:410517240000:410517249999:12,13,14,15,16,17,18,19:VISA:11111111111
+CTD6:411806000000:411806999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT7:413320000000:413320999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CTD8:421475050000:421475059999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT9:421475060000:421475069999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT10:429906000000:429906999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT11:430733000000:430733999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT12:432643000000:432643999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT13:433727000000:433727999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT14:435720000000:435720999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT15:439338000000:439338999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT16:439416000000:439416999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT17:449855000000:449855999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT18:458735010000:458735019999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT19:474867000000:474867999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT20:481761000000:481761999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT21:482200000000:482200999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT22:484398000000:484398999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT23:485140000000:485140999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT24:490939000000:490939999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT25:491017000000:491017999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT26:500000000000:599999999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT27:517555000000:517555999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT28:519507000000:519507999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT29:519625000000:519625999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT30:528631000000:528631999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT31:531756000000:531756999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT32:533265000000:533265999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT33:534787000000:534787999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT34:534938740000:534938749999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT35:542412850000:542412859999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT36:545842000000:545842999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT37:222100000000:272099999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT38:100000000000:199999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
+CDT39:900000000000:999999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
+CDT40:700000000000:799999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
+CDT41:600000000000:699999999999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT42:626296450000:626296459999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT43:629110420000:629110429999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT44:800000000000:899999999999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT45:300000000000:399999999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT46:341305000000:341305999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT47:341306000000:341306999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT48:342156000000:342156999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT49:370642000000:370642999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT50:371598000000:371598999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT51:371599000000:371599999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT52:376947000000:376947999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT53:376948000000:376948999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT54:376949000000:376949999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT55:639996000000:639996999999:12,13,14,15,16,17,18,19:TAKAPAY:11111111111
+CDT56:639996020000:639996029999:12,13,14,15,16,17,18,19:CITY TAKAPAY:11111111111
+EDT0:A0000000031010:VSDC:0010000000:D84004F800:D84000A800:000000:500001:99999999
+EDT1:A0000000032010:VISA ELECT:0010000000:D84004F800:D84000A800:000000:500001:99999999
+EDT2:A0000000033010:VISA INTERLINK:0010000000:D84004F800:D84000A800:000000:500001:99999999
+EDT3:A0000000041010:MASTERCARD:0000000000:F45084800C:F45084800C:000000:500000:99999999
+EDT4:A0000000043060:MAESTRO:0000000000:F45084800C:F45084800C:000000:500000:99999999
+EDT5:A00000033301:UPI:0000000000:D800FC9800:084000A800:000000:500000:99999999
+EDT6:A00000002501:AMEX:0010000000:DE00FC9800:DC50FC9800:00000:500001:99999999
+EDT7:A00000091010:TAKAPAY:0000000000:F45084800C:F45084800C:000000:500000:99999999
+OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
+    }
+
+    // Excel File Upload Handling
+    const excelInput = document.getElementById('excelInput');
+    const dropZone = document.getElementById('dropZone');
+
+    excelInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-500'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file) return;
+      document.getElementById('fileStatusBadge').textContent = file.name;
+      document.getElementById('fileStatusBadge').className = "text-[11px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300";
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        workbook = XLSX.read(data, { type: 'array' });
+
+        const sheetSelect = document.getElementById('sheetSelect');
+        sheetSelect.innerHTML = '';
+        workbook.SheetNames.forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          sheetSelect.appendChild(opt);
+        });
+
+        document.getElementById('sheetInfoBanner').textContent = `🟡 ${workbook.SheetNames.length} sheet(s) detected.`;
+        handleSheetChange();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function handleSheetChange() {
+      const sheetName = document.getElementById('sheetSelect').value;
+      if (!workbook || !sheetName) return;
+
+      const worksheet = workbook.Sheets[sheetName];
+      rawSheetData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      headers = rawSheetData.length > 0 ? Object.keys(rawSheetData[0]) : [];
+
+      populateColumnDropdowns();
+      processMappedData();
+    }
+
+    function populateColumnDropdowns() {
+      const mapIds = ['map_tid', 'map_mid', 'map_dba1', 'map_dba2', 'map_addr1', 'map_addr2', 'map_addr3', 'map_addr4', 'map_addr5'];
+      const keywords = {
+        map_tid: ['tid', 'terminal'],
+        map_mid
