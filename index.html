@@ -1,380 +1,1406 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POS Terminal Config Generator - City Bank</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <style>
-    body { background-color: #0b1120; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card-bg { background-color: #111827; border: 1px solid #1e293b; }
-    .input-bg { background-color: #0f172a; border: 1px solid #334155; color: #f8fafc; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS & TID Config Manager | Auto-Deduplication & Withdraw Dashboard</title>
+    
+    <!-- Google Fonts: Inter & Hind Siliguri for crisp English & Bangla rendering -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Hind Siliguri', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- SheetJS (xlsx) for reading & exporting Excel/CSV files -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom scrollbar for sleek enterprise table feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .drag-active {
+            border-color: #4f46e5 !important;
+            background-color: rgba(79, 70, 229, 0.08) !important;
+            transform: scale(1.005);
+        }
+    </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 min-h-screen flex flex-col">
 
-  <!-- Top Navbar -->
-  <header class="border-b border-slate-800 bg-[#0f172a] px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-lg">
-        ⊞
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="font-bold text-white tracking-wide text-base">POS TERMINAL CONFIG GENERATOR</h1>
-          <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">CITY BANK</span>
-          <span class="text-[11px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-300 border border-teal-500/30">☁ Template Ready</span>
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight" data-i18n="appTitle">
+                        POS Config & Withdraw Hub
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block" data-i18n="appSubtitle">
+                        Automated TID & POS Serial Deduplication System
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- GitHub Host Guide Button -->
+                <button onclick="openGithubModal()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-xl bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-700 transition shadow-sm">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                    <span class="hidden md:inline" data-i18n="githubGuideBtn">GitHub Deploy Guide</span>
+                </button>
+
+                <!-- Language Toggle (EN / BN) -->
+                <button onclick="toggleLanguage()" id="langBtn" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition">
+                    <i data-lucide="languages" class="w-4 h-4"></i>
+                    <span id="langLabel">বাংলা</span>
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                </button>
+            </div>
         </div>
-        <p class="text-xs text-slate-400">Parse Excel data into HDT, TCT & parameter batch configs per TID</p>
-      </div>
+    </header>
+
+    <!-- Main Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Toast Notification Container -->
+        <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+        <!-- Upload & Smart Settings Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Drag & Drop Upload Box -->
+            <div class="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                            <span data-i18n="uploadTitle">Upload Excel / CSV Configuration</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5" data-i18n="uploadDesc">
+                            Auto-merges with existing records & moves older duplicate TID / POS Serials to Withdraw List.
+                        </p>
+                    </div>
+                    <button onclick="loadSampleData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span data-i18n="sampleBtn">Load Your Excel Sample</span>
+                    </button>
+                </div>
+
+                <!-- Dropzone -->
+                <div id="dropZone" onclick="document.getElementById('fileInput').click()" class="cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 rounded-2xl p-6 sm:p-8 text-center transition-all bg-slate-50/70 dark:bg-slate-800/40 group">
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" multiple class="hidden" onchange="handleFileSelect(event)">
+                    <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200" data-i18n="dropText">
+                        Click to upload or drag & drop your Excel file(s) here
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Supports <span class="font-mono font-medium text-indigo-600 dark:text-indigo-400">.xlsx, .xls, .csv</span> • Auto-detects Row 1 or Row 2 Headers & Cleans Commas
+                    </p>
+                </div>
+
+                <!-- Column Mapping Bar (Shown dynamically when headers exist) -->
+                <div id="columnMapperBar" class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-indigo-500"></i>
+                            <span data-i18n="colMapping">Mapped Columns:</span>
+                        </span>
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <label class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                <span class="font-medium text-slate-600 dark:text-slate-300">TID:</span>
+                                <select id="mapTidSelect" onchange="reprocessAllData()" class="bg-transparent font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none max-w-[110px]"></select>
+                            </label>
+                            <label class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                <span class="font-medium text-slate-600 dark:text-slate-300">Serial:</span>
+                                <select id="mapSerialSelect" onchange="reprocessAllData()" class="bg-transparent font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none max-w-[120px]"></select>
+                            </label>
+                            <label class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                <span class="font-medium text-amber-600 dark:text-amber-400">Old TID:</span>
+                                <select id="mapOldTidSelect" onchange="reprocessAllData()" class="bg-transparent font-semibold text-amber-600 dark:text-amber-400 focus:outline-none max-w-[110px]"></select>
+                            </label>
+                            <label class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                <span class="font-medium text-amber-600 dark:text-amber-400">Old Serial:</span>
+                                <select id="mapOldSerialSelect" onchange="reprocessAllData()" class="bg-transparent font-semibold text-amber-600 dark:text-amber-400 focus:outline-none max-w-[120px]"></select>
+                            </label>
+                            <label class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                <span class="font-medium text-slate-600 dark:text-slate-300">Date:</span>
+                                <select id="mapDateSelect" onchange="reprocessAllData()" class="bg-transparent font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none max-w-[110px]"></select>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deduplication Rules & Quick Actions -->
+            <div class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i data-lucide="git-merge" class="w-5 h-5 text-violet-600 dark:text-violet-400"></i>
+                        <span data-i18n="rulesTitle">Deduplication & Withdraw Rules</span>
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <!-- Rule 1: Inline Replacement Check -->
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-2">
+                            <div>
+                                <span class="block text-xs font-semibold text-slate-800 dark:text-slate-200" data-i18n="inlineReplaceLabel">
+                                    Auto-Extract OLD TID / OLD POS SERIAL
+                                </span>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Moves replaced old terminals in the same row directly to Withdraw List
+                                </span>
+                            </div>
+                            <input type="checkbox" id="extractInlineOld" checked onchange="reprocessAllData()" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                        </div>
+
+                        <!-- Rule 2: Match Condition -->
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70">
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" data-i18n="matchModeLabel">
+                                Cross-Row Duplicate Trigger:
+                            </label>
+                            <select id="matchMode" onchange="reprocessAllData()" class="w-full text-xs sm:text-sm rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="EITHER">Duplicate if EITHER TID or POS Serial matches (Recommended)</option>
+                                <option value="BOTH">Duplicate only if BOTH TID & POS Serial match</option>
+                                <option value="TID_ONLY">Match by TID Only</option>
+                                <option value="SERIAL_ONLY">Match by POS Serial Only</option>
+                            </select>
+                        </div>
+
+                        <!-- Rule 3: Keep Priority -->
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70">
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" data-i18n="keepModeLabel">
+                                Which record stays in Live Master List?
+                            </label>
+                            <select id="keepMode" onchange="reprocessAllData()" class="w-full text-xs sm:text-sm rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="LATEST_UPLOAD_OR_DATE">Newest Record (Latest Config Date / Latest Upload)</option>
+                                <option value="BOTTOM_ROW">Bottom-most Row in Excel (Last Entry)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export & Reset Buttons -->
+                <div class="pt-2 flex flex-wrap items-center gap-2">
+                    <button onclick="exportFullWorkbook()" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span data-i18n="exportFullBtn">Export Full Report (.xlsx)</span>
+                    </button>
+                    <button onclick="confirmClearAll()" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-400 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 transition" title="Clear All Stored Data">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span data-i18n="resetBtn">Reset</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Summary Cards -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Live Master List -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" data-i18n="kpiActive">Live Terminals</span>
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <i data-lucide="radio" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="statActive" class="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">0</span>
+                    <span class="text-xs text-slate-500" data-i18n="uniqueLabel">live active</span>
+                </div>
+            </div>
+
+            <!-- Withdraw List (Replaced + Duplicates) -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" data-i18n="kpiWithdraw">Total Withdrawn</span>
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <i data-lucide="archive-restore" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="statWithdraw" class="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400">0</span>
+                    <span class="text-xs text-slate-500" data-i18n="oldDupLabel">withdrawn</span>
+                </div>
+            </div>
+
+            <!-- Replacements vs Duplicates Breakdown -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" data-i18n="kpiRate">Withdraw Breakdown</span>
+                    <div class="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                    <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">Replaced: <span id="statReplacedCount">0</span></span>
+                    <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300">Duplicate: <span id="statDupCount">0</span></span>
+                </div>
+            </div>
+
+            <!-- Total Uploaded Rows -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" data-i18n="kpiTotal">Uploaded Rows</span>
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                        <i data-lucide="database" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="statTotal" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">0</span>
+                    <span class="text-xs text-slate-500" data-i18n="rowsLabel">excel rows</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Workspace: Tabs, Search & Tables -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <!-- Toolbar -->
+            <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <!-- Navigation Tabs -->
+                <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+                    <button onclick="switchTab('active')" id="tabActiveBtn" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm transition flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        <span data-i18n="tabActive">Live Master List</span>
+                        <span id="badgeActive" class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 dark:bg-emerald-900/70 text-emerald-700 dark:text-emerald-300">0</span>
+                    </button>
+                    <button onclick="switchTab('withdraw')" id="tabWithdrawBtn" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2">
+                        <i data-lucide="archive" class="w-4 h-4"></i>
+                        <span data-i18n="tabWithdraw">Withdraw List</span>
+                        <span id="badgeWithdraw" class="px-2 py-0.5 text-xs rounded-full bg-amber-100 dark:bg-amber-900/70 text-amber-800 dark:text-amber-300">0</span>
+                    </button>
+                </div>
+
+                <!-- Filters, Search & Tab-Specific Export -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <!-- Purpose / Location Filter -->
+                    <select id="purposeFilter" onchange="renderTable()" class="px-3 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">All Purposes / Types</option>
+                    </select>
+
+                    <div class="relative flex-1 sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search TID, Serial, DBA, Location..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <button onclick="exportCurrentTab()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition">
+                        <i data-lucide="file-down" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                        <span id="exportTabLabel">Export Live (.xlsx)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Info Banner for Withdraw Tab -->
+            <div id="withdrawBanner" class="hidden bg-amber-50/90 dark:bg-amber-950/40 border-b border-amber-200/80 dark:border-amber-800/50 px-5 py-3 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0"></i>
+                    <span data-i18n="withdrawBannerText">
+                        Includes both <strong>Replaced Old Terminals</strong> (from OLD TID / OLD POS SERIAL columns) and <strong>Older Duplicate Entries</strong> superseded by newer uploads.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Responsive Data Table -->
+            <div class="overflow-x-auto max-h-[540px]">
+                <table class="w-full text-left border-collapse">
+                    <thead id="tableHead" class="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                        <!-- Dynamic Headers -->
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs sm:text-sm">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="py-16 px-4 text-center">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-4">
+                    <i data-lucide="inbox" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-200" data-i18n="emptyTitle">No Configuration Data Yet</h3>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1" data-i18n="emptyDesc">
+                    Upload your Excel (.xlsx / .csv) file above or click "Load Demo Excel Data" to test automatic TID & POS Serial deduplication.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 py-4 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        POS & TID Configuration Manager • Runs 100% in your browser • Ready for GitHub Pages Hosting
+    </footer>
+
+    <!-- Confirmation Modal (Replaces alert/confirm) -->
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div class="flex items-center gap-3 text-rose-600 dark:text-rose-400 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950 flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Reset All Dashboard Data?</h3>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-300 mb-6">
+                This will permanently clear all uploaded records, Active Master List, and Withdraw List from your browser storage. Make sure you exported your Excel report first!
+            </p>
+            <div class="flex justify-end gap-2.5">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+                    Cancel
+                </button>
+                <button onclick="executeClearAll()" class="px-4 py-2 text-sm font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition">
+                    Yes, Clear Everything
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="flex items-center gap-2">
-      <button onclick="loadDemoData()" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-400 flex items-center gap-1.5 transition">
-        ⚡ Load Demo Data
-      </button>
-      <button onclick="resetAll()" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-red-900/40 border border-slate-700 text-xs font-medium text-slate-300 transition">
-        Reset All
-      </button>
-    </div>
-  </header>
+    <!-- GitHub Hosting Guide Modal -->
+    <div id="githubModal" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                        <i data-lucide="github" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">How to Host This Dashboard Free on GitHub</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">2-Minute Setup • No Server Needed • Live Web URL</p>
+                    </div>
+                </div>
+                <button onclick="closeGithubModal()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
 
-  <!-- Main Workspace -->
-  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+            <div class="py-5 space-y-4 text-sm text-slate-700 dark:text-slate-300">
+                <div class="flex gap-3.5">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <div>
+                        <h4 class="font-bold text-slate-900 dark:text-white">Create a New Repository on GitHub</h4>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            Log in to <a href="https://github.com" target="_blank" class="text-indigo-600 underline font-medium">github.com</a>, click the <strong>+</strong> icon at the top right, and select <strong>New repository</strong>. Name it e.g. <code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono">pos-config-dashboard</code> and set it to <strong>Public</strong> (or Private).
+                        </p>
+                    </div>
+                </div>
 
-    <!-- Left Sidebar -->
-    <div class="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
+                <div class="flex gap-3.5">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <div>
+                        <h4 class="font-bold text-slate-900 dark:text-white">Upload This File as <code class="font-mono text-indigo-600 dark:text-indigo-400">index.html</code></h4>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            Save this dashboard code on your computer as <code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono">index.html</code>. Inside your GitHub repository, click <strong>Add file → Upload files</strong>, drag <code class="font-mono">index.html</code>, and click <strong>Commit changes</strong>.
+                        </p>
+                    </div>
+                </div>
 
-      <!-- 1. Excel File Import -->
-      <div class="card-bg rounded-xl p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-bold tracking-wider text-slate-300 uppercase">📤 1. EXCEL FILE IMPORT</h2>
-          <span id="fileStatusBadge" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">No file loaded</span>
+                <div class="flex gap-3.5">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <div>
+                        <h4 class="font-bold text-slate-900 dark:text-white">Activate GitHub Pages</h4>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            Go to your repository's <strong>Settings → Pages</strong> (on the left sidebar). Under <strong>Branch</strong>, select <code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono">main</code> and folder <code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono">/ (root)</code>, then click <strong>Save</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200">
+                    <strong>Done!</strong> Within 60 seconds, GitHub will give you a live link like:<br>
+                    <code class="font-mono font-bold text-emerald-700 dark:text-emerald-300 mt-1 inline-block">https://your-username.github.io/pos-config-dashboard/</code><br>
+                    You can bookmark this URL on any PC or mobile device and upload your daily Excel files anytime!
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                <button onclick="closeGithubModal()" class="px-5 py-2 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition">
+                    Got It!
+                </button>
+            </div>
         </div>
-
-        <label id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-900/50">
-          <input type="file" id="excelInput" accept=".xlsx, .xls, .csv" class="hidden" />
-          <div class="w-10 h-10 rounded bg-slate-800 flex items-center justify-center text-slate-300 mb-2 text-lg">📊</div>
-          <p class="text-xs font-medium text-slate-200">Drag & drop your Excel sheet here or click to browse</p>
-          <p class="text-[11px] text-slate-500 mt-1">Supports .xlsx, .xls & multi-sheet workbooks</p>
-        </label>
-      </div>
-
-      <!-- 2. Active Section / Phase -->
-      <div class="card-bg rounded-xl p-4">
-        <h2 class="text-xs font-bold tracking-wider text-slate-300 uppercase mb-2">📑 2. ACTIVE SECTION / SHEET</h2>
-        <div id="sheetInfoBanner" class="text-xs px-3 py-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 mb-3">
-          Waiting for Excel file...
-        </div>
-        <label class="block text-[11px] text-slate-400 mb-1">Select Sheet</label>
-        <select id="sheetSelect" onchange="handleSheetChange()" class="w-full input-bg rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500">
-          <option value="">-- No Sheet --</option>
-        </select>
-      </div>
-
-      <!-- 3. Column Mapping -->
-      <div class="card-bg rounded-xl p-4 flex-1">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="text-xs font-bold tracking-wider text-slate-300 uppercase">🔗 3. COLUMN MAPPING</h2>
-        </div>
-        <div id="mappingWarning" class="text-xs px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 mb-3">
-          ⚠ Upload file or load demo data to map columns
-        </div>
-
-        <div class="space-y-2.5 text-xs">
-          <div>
-            <label class="block text-slate-400 mb-1">TID (File Name) *</label>
-            <select id="map_tid" onchange="processMappedData()" class="w-full input-bg rounded px-2.5 py-1.5"></select>
-          </div>
-          <div>
-            <label class="block text-slate-400 mb-1">MID *</label>
-            <select id="map_mid" onchange="processMappedData()" class="w-full input-bg rounded px-2.5 py-1.5"></select>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-slate-400 mb-1">DBA Name 1 (24)</label>
-              <select id="map_dba1" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">DBA Name 2 (28)</label>
-              <select id="map_dba2" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-slate-400 mb-1">ADDR1 (36)</label>
-              <select id="map_addr1" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">ADDR2 (36)</label>
-              <select id="map_addr2" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-          </div>
-          <div class="grid grid-cols-3 gap-1.5">
-            <div>
-              <label class="block text-slate-400 mb-1">ADDR3</label>
-              <select id="map_addr3" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">ADDR4</label>
-              <select id="map_addr4" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">ADDR5</label>
-              <select id="map_addr5" onchange="processMappedData()" class="w-full input-bg rounded px-2 py-1.5"></select>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- Right Main Panel -->
-    <div class="lg:col-span-8 xl:col-span-9 flex flex-col gap-4">
+    <script>
+        // ==========================================
+        // STATE MANAGEMENT & STORAGE
+        // ==========================================
+        const STORAGE_KEY = 'pos_tid_dashboard_v2';
+        
+        let appState = {
+            rawRecords: [],       // All uploaded records with internal metadata
+            headers: [],          // Ordered column headers discovered from Excel
+            tidCol: '',           // Mapped TID column name
+            serialCol: '',        // Mapped POS SERIAL column name
+            oldTidCol: '',        // Mapped OLD TID column name
+            oldSerialCol: '',     // Mapped OLD POS SERIAL column name
+            purposeCol: '',       // Mapped PURPOSE column name
+            dateCol: '',          // Mapped CONFIG DATE column name
+            activeList: [],       // Deduplicated current live records
+            withdrawList: [],     // Withdrawn records (both inline replaced & cross-row duplicates)
+            currentTab: 'active', // 'active' or 'withdraw'
+            lang: 'en',           // 'en' or 'bn'
+            stats: {
+                replacedCount: 0,
+                dupCount: 0
+            }
+        };
 
-      <!-- Top Action Bar -->
-      <div class="card-bg rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <button id="tabTableBtn" onclick="switchTab('table')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition">
-            Data Table (<span id="rowCountBadge">0</span>)
-          </button>
-          <button id="tabOutputBtn" onclick="switchTab('output')" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-            Config Output Preview
-          </button>
-        </div>
+        // Bilingual Dictionary (English & Bangla)
+        const i18n = {
+            en: {
+                appTitle: "POS Config & Withdraw Hub",
+                appSubtitle: "Automated TID, Replacement & POS Serial Deduplication System",
+                githubGuideBtn: "GitHub Deploy Guide",
+                uploadTitle: "Upload Excel / CSV Configuration",
+                uploadDesc: "Automatically extracts OLD TID / OLD POS SERIAL to Withdraw List & keeps latest TID / Serial in Live.",
+                sampleBtn: "Load Your Excel Sample",
+                dropText: "Click to upload or drag & drop your Excel file(s) here",
+                colMapping: "Mapped Columns:",
+                rulesTitle: "Deduplication & Withdraw Rules",
+                inlineReplaceLabel: "Auto-Extract OLD TID / OLD POS SERIAL",
+                matchModeLabel: "Cross-Row Duplicate Trigger:",
+                keepModeLabel: "Which record stays in Live Master List?",
+                exportFullBtn: "Export Full Report (.xlsx)",
+                resetBtn: "Reset",
+                kpiTotal: "Uploaded Rows",
+                rowsLabel: "excel rows",
+                kpiActive: "Live Terminals",
+                uniqueLabel: "live active",
+                kpiWithdraw: "Total Withdrawn",
+                oldDupLabel: "withdrawn",
+                kpiRate: "Withdraw Breakdown",
+                tabActive: "Live Master List",
+                tabWithdraw: "Withdraw List",
+                withdrawBannerText: "Includes both Replaced Old Terminals (from OLD TID / OLD POS SERIAL columns) and Older Duplicate Entries superseded by newer uploads.",
+                emptyTitle: "No Configuration Data Yet",
+                emptyDesc: "Upload your Excel (.xlsx / .csv) file above or click \"Load Your Excel Sample\" to see Live vs Withdraw counts."
+            },
+            bn: {
+                appTitle: "POS কনফিগ ও উইথড্র ড্যাশবোর্ড",
+                appSubtitle: "অটোমেটিক Live টার্মিনাল, Replacement এবং Withdraw হিসাব সিস্টেম",
+                githubGuideBtn: "GitHub হোস্টিং গাইড",
+                uploadTitle: "Excel / CSV কনফিগারেশন ফাইল আপলোড করুন",
+                uploadDesc: "ফাইল আপলোড করলেই নতুন TID/Serial থাকবে Live লিস্টে এবং পুরনো OLD TID/Serial ও ডুপ্লিকেট চলে যাবে Withdraw লিস্টে।",
+                sampleBtn: "আপনার Excel স্যাম্পল লোড করুন",
+                dropText: "আপনার Excel ফাইল এখানে ড্র্যাগ করে ছাড়ুন অথবা ক্লিক করুন",
+                colMapping: "কলাম ম্যাপিং:",
+                rulesTitle: "ডুপ্লিকেট ও উইথড্র নিয়মাবলী",
+                inlineReplaceLabel: "OLD TID / OLD POS SERIAL অটো-উইথড্র করুন",
+                matchModeLabel: "ডুপ্লিকেট চেক করার নিয়ম:",
+                keepModeLabel: "Live লিস্টে কোন ডাটাটি থাকবে?",
+                exportFullBtn: "সম্পূর্ণ রিপোর্ট ডাউনলোড (.xlsx)",
+                resetBtn: "রিসেট",
+                kpiTotal: "মোট আপলোড রো",
+                rowsLabel: "টি রো",
+                kpiActive: "Live টার্মিনাল সংখ্যা",
+                uniqueLabel: "টি লাইভ আছে",
+                kpiWithdraw: "মোট Withdraw হয়েছে",
+                oldDupLabel: "টি উইথড্র",
+                kpiRate: "Withdraw বিবরণ",
+                tabActive: "Live মাস্টার লিস্ট",
+                tabWithdraw: "Withdraw লিস্ট",
+                withdrawBannerText: "এখানে Replacement হওয়া পুরনো টার্মিনাল (OLD TID / OLD POS SERIAL) এবং নতুন আপলোডে বাদ পড়া পুরনো ডুপ্লিকেটগুলো রয়েছে।",
+                emptyTitle: "এখনো কোনো ডাটা আপলোড করা হয়নি",
+                emptyDesc: "উপরের বক্সে আপনার Excel (.xlsx / .csv) ফাইল আপলোড করুন অথবা \"আপনার Excel স্যাম্পল লোড করুন\" বাটনে ক্লিক করুন।"
+            }
+        };
 
-        <div class="flex items-center gap-2 flex-1 max-w-md">
-          <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Search TID or Merchant..." class="w-full input-bg rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500" />
-        </div>
-
-        <button onclick="downloadZip()" id="downloadZipBtn" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition" disabled>
-          ⬇ Download ZIP (<span id="zipCountBadge">0</span> .txt)
-        </button>
-      </div>
-
-      <!-- EMI Control Bar -->
-      <div class="card-bg rounded-xl p-3 flex flex-col gap-3">
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-            <span class="text-xs text-slate-400">☰ EMI Mode:</span>
-            <button id="emiToggleBtn" onclick="toggleEmiMode()" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              EMI=1 (ENABLED)
-            </button>
-          </div>
-
-          <div class="flex items-center gap-2 flex-1 min-w-[240px]">
-            <span class="text-xs text-slate-400 whitespace-nowrap">📅 Tenor Limit:</span>
-            <input type="text" id="tenorInput" value="3,6,9,12" class="w-full input-bg rounded-lg px-3 py-1.5 text-xs" />
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <input type="text" id="specificTidsInput" placeholder="Specific TIDs for EMI (e.g. 18037800, 20002421) or leave empty for ALL..." class="flex-1 input-bg rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500" />
-          <button onclick="processMappedData()" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
-            ⚡ Apply EMI Rules
-          </button>
-        </div>
-      </div>
-
-      <!-- Data Table View -->
-      <div id="tableView" class="card-bg rounded-xl flex-1 overflow-hidden flex flex-col min-h-[380px]">
-        <div class="overflow-x-auto flex-1">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-slate-800 bg-slate-900/80 text-[11px] font-bold text-slate-400 uppercase">
-                <th class="py-3 px-4">#</th>
-                <th class="py-3 px-4">TID (FILE NAME)</th>
-                <th class="py-3 px-4">MID</th>
-                <th class="py-3 px-4">DBA NAME (PART 1/2)</th>
-                <th class="py-3 px-4">ADDRESS BREAKDOWN</th>
-                <th class="py-3 px-4">EMI</th>
-                <th class="py-3 px-4 text-right">ACTION</th>
-              </tr>
-            </thead>
-            <tbody id="dataTableBody" class="divide-y divide-slate-800/60 text-xs">
-              <tr>
-                <td colspan="7" class="py-20 text-center text-slate-500">
-                  No data loaded. Drag & drop an Excel file or click "Load Demo Data".
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Config Output Preview View -->
-      <div id="outputView" class="card-bg rounded-xl flex-1 p-4 hidden flex-col min-h-[380px]">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-300">Previewing Config File:</span>
-            <select id="previewTidSelect" onchange="updatePreviewBox()" class="input-bg rounded px-3 py-1 text-xs"></select>
-          </div>
-          <button onclick="copyCurrentPreview()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-blue-400 border border-slate-700">
-            📋 Copy Config
-          </button>
-        </div>
-        <textarea id="configPreviewBox" readonly class="w-full flex-1 input-bg rounded-lg p-4 font-mono text-xs text-emerald-300 leading-relaxed focus:outline-none"></textarea>
-      </div>
-
-    </div>
-  </main>
-
-  <script>
-    let workbook = null;
-    let rawSheetData = [];
-    let headers = [];
-    let generatedRecords = [];
-    let emiEnabled = true;
-
-    // Exact City Bank POS Config Template
-    function buildConfigText(item) {
-      const emiFlag = item.emiActive ? "1" : "0";
-      const tenorStr = item.emiActive ? item.tenor : "";
-
-      return `HDT:TID=${item.tid}:MID=${item.mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
-TCT:ADDR1(36)=${item.addr1}:ADDR2(36)=${item.addr2}:ADDR3(36)=${item.addr3}:ADDR4(36)=${item.addr4}:ADDR5(36)=${item.addr5}:MERCHANTNAME1(24)=${item.dba1}:MERCHANTNAME2(28)=${item.dba2}:2489:0000:0000:0000:0000:24896925
-SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
-SIMBIN:BANGLALINK=1:GRAMEENPHONE=0:ROBI=0:OTHERS=0
-IPBIN:IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400
-TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
-MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
-PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
-LIMIT:999:999:001:99999999:50000:500000:500000:${tenorStr}
-CARDEMICHARGEBIN:3,3:6,4:9,6.5:12,8:18,10.5:24,13:36,18
-SLIPPRINT:MERCHANTCOPY=1:CUSTOMERCOPY=0:LOGON=1:CARDDETAILSREPORT=0:SETTLEDETAILSREPORT=0:ERRORTXN=1:PRINTTVR=0:PRINTTSI=0:QRDSPLAY=0:TRANSACTIONSOUND=0:CARDDETAILS=1:PAPERLESS=0
-PRINTLOGO:BANKLOGO=1:MERCHANTLOGO=0
-EXPMASKING:EXPMASKMC=0:EXPMASKCC=0:EXPMASKDT=0:EXPMASKPREAUTH=0:EXPMASKDISP=0:EXPMASKSHOWTXN=0:EXPMASKEMI=0:EXPMASKERRRP=0
-PANMASKING:PANMASKMC=1:PANMASKCC=0:PANMASKDT=1:PANMASKPREAUTH=1:PANMASKDISP=1:PANMASKSHOWTXN=1:PANMASKEMI=1:PANMASKERRRP=1
-EMIBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-LOUNGEBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-MICROATMBIN:5175550000000000,5175559999999999,16:5195070000000000,5195079999999999,16:5286310000000000,5286319999999999,16:4105200000000000,4105209999999999,16:300000000000000,399999999999999,15:6291104200000000,6291104299999999,16:6399960200000000,6399960299999999,16
-PRINTBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-BINWISELIMIT:0001:99999999:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-CDT0:400000000000:499999999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT1:409765000000:409765009999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT2:410520000000:410520999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT3:410517110000:410517119999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT4:410517120000:410517129999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT5:410517240000:410517249999:12,13,14,15,16,17,18,19:VISA:11111111111
-CTD6:411806000000:411806999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT7:413320000000:413320999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CTD8:421475050000:421475059999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT9:421475060000:421475069999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT10:429906000000:429906999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT11:430733000000:430733999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT12:432643000000:432643999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT13:433727000000:433727999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT14:435720000000:435720999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT15:439338000000:439338999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT16:439416000000:439416999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT17:449855000000:449855999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT18:458735010000:458735019999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT19:474867000000:474867999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT20:481761000000:481761999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT21:482200000000:482200999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT22:484398000000:484398999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT23:485140000000:485140999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT24:490939000000:490939999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT25:491017000000:491017999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT26:500000000000:599999999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT27:517555000000:517555999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT28:519507000000:519507999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT29:519625000000:519625999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT30:528631000000:528631999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT31:531756000000:531756999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT32:533265000000:533265999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT33:534787000000:534787999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT34:534938740000:534938749999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT35:542412850000:542412859999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT36:545842000000:545842999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT37:222100000000:272099999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT38:100000000000:199999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
-CDT39:900000000000:999999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
-CDT40:700000000000:799999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
-CDT41:600000000000:699999999999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT42:626296450000:626296459999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT43:629110420000:629110429999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT44:800000000000:899999999999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT45:300000000000:399999999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT46:341305000000:341305999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT47:341306000000:341306999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT48:342156000000:342156999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT49:370642000000:370642999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT50:371598000000:371598999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT51:371599000000:371599999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT52:376947000000:376947999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT53:376948000000:376948999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT54:376949000000:376949999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT55:639996000000:639996999999:12,13,14,15,16,17,18,19:TAKAPAY:11111111111
-CDT56:639996020000:639996029999:12,13,14,15,16,17,18,19:CITY TAKAPAY:11111111111
-EDT0:A0000000031010:VSDC:0010000000:D84004F800:D84000A800:000000:500001:99999999
-EDT1:A0000000032010:VISA ELECT:0010000000:D84004F800:D84000A800:000000:500001:99999999
-EDT2:A0000000033010:VISA INTERLINK:0010000000:D84004F800:D84000A800:000000:500001:99999999
-EDT3:A0000000041010:MASTERCARD:0000000000:F45084800C:F45084800C:000000:500000:99999999
-EDT4:A0000000043060:MAESTRO:0000000000:F45084800C:F45084800C:000000:500000:99999999
-EDT5:A00000033301:UPI:0000000000:D800FC9800:084000A800:000000:500000:99999999
-EDT6:A00000002501:AMEX:0010000000:DE00FC9800:DC50FC9800:00000:500001:99999999
-EDT7:A00000091010:TAKAPAY:0000000000:F45084800C:F45084800C:000000:500000:99999999
-OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
-    }
-
-    // Excel File Upload Handling
-    const excelInput = document.getElementById('excelInput');
-    const dropZone = document.getElementById('dropZone');
-
-    excelInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-500'));
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('border-blue-500');
-      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-    });
-
-    function handleFile(file) {
-      if (!file) return;
-      document.getElementById('fileStatusBadge').textContent = file.name;
-      document.getElementById('fileStatusBadge').className = "text-[11px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300";
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        workbook = XLSX.read(data, { type: 'array' });
-
-        const sheetSelect = document.getElementById('sheetSelect');
-        sheetSelect.innerHTML = '';
-        workbook.SheetNames.forEach(name => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          sheetSelect.appendChild(opt);
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            setupDragAndDrop();
+            loadFromStorage();
         });
 
-        document.getElementById('sheetInfoBanner').textContent = `🟡 ${workbook.SheetNames.length} sheet(s) detected.`;
-        handleSheetChange();
-      };
-      reader.readAsArrayBuffer(file);
-    }
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    appState.rawRecords = parsed.rawRecords || [];
+                    appState.headers = parsed.headers || [];
+                    appState.tidCol = parsed.tidCol || '';
+                    appState.serialCol = parsed.serialCol || '';
+                    appState.oldTidCol = parsed.oldTidCol || '';
+                    appState.oldSerialCol = parsed.oldSerialCol || '';
+                    appState.purposeCol = parsed.purposeCol || '';
+                    appState.dateCol = parsed.dateCol || '';
+                    if (appState.rawRecords.length > 0) {
+                        populateColumnSelectors();
+                        reprocessAllData(false);
+                    }
+                }
+            } catch (err) {
+                console.error("Storage load error:", err);
+            }
+        }
 
-    function handleSheetChange() {
-      const sheetName = document.getElementById('sheetSelect').value;
-      if (!workbook || !sheetName) return;
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    rawRecords: appState.rawRecords,
+                    headers: appState.headers,
+                    tidCol: appState.tidCol,
+                    serialCol: appState.serialCol,
+                    oldTidCol: appState.oldTidCol,
+                    oldSerialCol: appState.oldSerialCol,
+                    purposeCol: appState.purposeCol,
+                    dateCol: appState.dateCol
+                }));
+            } catch (err) {
+                showToast("Warning: Browser storage full. Export your Excel report!", "amber");
+            }
+        }
 
-      const worksheet = workbook.Sheets[sheetName];
-      rawSheetData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-      headers = rawSheetData.length > 0 ? Object.keys(rawSheetData[0]) : [];
+        // ==========================================
+        // DRAG & DROP & SMART EXCEL PARSING (SheetJS)
+        // ==========================================
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
 
-      populateColumnDropdowns();
-      processMappedData();
-    }
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+            });
 
-    function populateColumnDropdowns() {
-      const mapIds = ['map_tid', 'map_mid', 'map_dba1', 'map_dba2', 'map_addr1', 'map_addr2', 'map_addr3', 'map_addr4', 'map_addr5'];
-      const keywords = {
-        map_tid: ['tid', 'terminal'],
-        map_mid
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files && files.length > 0) {
+                    Array.from(files).forEach(file => processUploadedFile(file));
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                Array.from(files).forEach(file => processUploadedFile(file));
+                event.target.value = '';
+            }
+        }
+
+        // Smartly detects the real header row (even if Row 1 is a banner like "PHASE-1")
+        function parseWorksheetSmartly(worksheet) {
+            const matrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+            if (!matrix || matrix.length === 0) return [];
+
+            let headerRowIndex = 0;
+            for (let i = 0; i < Math.min(8, matrix.length); i++) {
+                const rowCells = matrix[i].map(c => String(c || '').trim().toUpperCase());
+                const hasTid = rowCells.some(c => c === 'TID' || c === 'TERMINAL ID' || c === 'TERMINAL_ID');
+                const hasSerial = rowCells.some(c => c.includes('SERIAL') || c.includes('MERCHANT') || c === 'MID');
+                if (hasTid || hasSerial) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+
+            const rawHeaders = matrix[headerRowIndex].map((h, idx) => {
+                const clean = String(h || '').trim();
+                return clean !== '' ? clean : `Column_${idx + 1}`;
+            });
+
+            // Deduplicate identical header names if any exist
+            const uniqueHeaders = [];
+            const seenCounts = {};
+            rawHeaders.forEach(h => {
+                if (seenCounts[h]) {
+                    seenCounts[h]++;
+                    uniqueHeaders.push(`${h}_${seenCounts[h]}`);
+                } else {
+                    seenCounts[h] = 1;
+                    uniqueHeaders.push(h);
+                }
+            });
+
+            const rows = [];
+            for (let r = headerRowIndex + 1; r < matrix.length; r++) {
+                const rowArr = matrix[r];
+                if (!rowArr || rowArr.every(cell => String(cell || '').trim() === '')) continue;
+
+                const obj = {};
+                uniqueHeaders.forEach((h, idx) => {
+                    obj[h] = rowArr[idx] !== undefined ? String(rowArr[idx]).trim() : "";
+                });
+                rows.push(obj);
+            }
+            return rows;
+        }
+
+        function processUploadedFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    
+                    let allExtractedRows = [];
+                    workbook.SheetNames.forEach(sheetName => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const sheetRows = parseWorksheetSmartly(worksheet);
+                        allExtractedRows = allExtractedRows.concat(sheetRows);
+                    });
+                    
+                    if (allExtractedRows.length === 0) {
+                        showToast(`No valid data rows found in ${file.name}.`, "rose");
+                        return;
+                    }
+
+                    ingestNewRows(allExtractedRows, file.name);
+                } catch (error) {
+                    console.error(error);
+                    showToast(`Failed to read ${file.name}. Ensure it is a valid Excel/CSV file.`, "rose");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Clean stray commas, quotes, or whitespace from Serial/TID values (e.g. ",80152619000053" -> "80152619000053")
+        function cleanIdentifier(val) {
+            if (val === undefined || val === null) return '';
+            return String(val).replace(/^[\s,'"]+|[\s,'"]+$/g, '').trim();
+        }
+
+        // ==========================================
+        // DATA INGESTION & COLUMN AUTO-DETECTION
+        // ==========================================
+        function ingestNewRows(rows, fileName) {
+            const newHeadersSet = new Set(appState.headers);
+            rows.forEach(row => {
+                Object.keys(row).forEach(key => {
+                    if (!key.startsWith('__EMPTY') && !key.startsWith('Column_')) {
+                        newHeadersSet.add(key.trim());
+                    }
+                });
+            });
+            appState.headers = Array.from(newHeadersSet);
+
+            // Auto-detect key columns tailored to your Excel sheet
+            if (!appState.tidCol || !appState.headers.includes(appState.tidCol)) {
+                appState.tidCol = detectColumn(appState.headers, ['tid', 'terminal id', 'terminal_id'], ['old']);
+            }
+            if (!appState.serialCol || !appState.headers.includes(appState.serialCol)) {
+                appState.serialCol = detectColumn(appState.headers, ['pos serial', 'pos_serial', 'serial'], ['old', 'sim']);
+            }
+            if (!appState.oldTidCol || !appState.headers.includes(appState.oldTidCol)) {
+                appState.oldTidCol = detectColumn(appState.headers, ['old tid', 'old_tid', 'previous tid'], [], true);
+            }
+            if (!appState.oldSerialCol || !appState.headers.includes(appState.oldSerialCol)) {
+                appState.oldSerialCol = detectColumn(appState.headers, ['old pos serial', 'old_pos_serial', 'old serial'], [], true);
+            }
+            if (!appState.purposeCol || !appState.headers.includes(appState.purposeCol)) {
+                appState.purposeCol = detectColumn(appState.headers, ['purpose', 'type', 'status', 'activity'], [], true);
+            }
+            if (!appState.dateCol || !appState.headers.includes(appState.dateCol)) {
+                appState.dateCol = detectColumn(appState.headers, ['config date', 'installation date', 'date', 'handover date'], [], true);
+            }
+
+            let currentMaxOrder = appState.rawRecords.reduce((max, r) => Math.max(max, r._uploadOrder || 0), 0);
+            
+            rows.forEach((rawRow) => {
+                currentMaxOrder++;
+                const cleanRow = {};
+                appState.headers.forEach(h => {
+                    let val = rawRow[h] !== undefined ? rawRow[h] : "";
+                    if (val instanceof Date && !isNaN(val)) {
+                        val = val.toISOString().split('T')[0];
+                    }
+                    // Clean leading/trailing commas on ID/Serial columns
+                    if (h === appState.tidCol || h === appState.serialCol || h === appState.oldTidCol || h === appState.oldSerialCol) {
+                        val = cleanIdentifier(val);
+                    } else {
+                        val = String(val).trim();
+                    }
+                    cleanRow[h] = val;
+                });
+
+                appState.rawRecords.push({
+                    ...cleanRow,
+                    _uid: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    _uploadOrder: currentMaxOrder,
+                    _sourceFile: fileName
+                });
+            });
+
+            populateColumnSelectors();
+            reprocessAllData(true);
+        }
+
+        function detectColumn(headers, keywords, excludeWords = [], allowEmpty = false) {
+            const validHeaders = headers.filter(h => {
+                const lower = h.toLowerCase();
+                return !excludeWords.some(ex => lower.includes(ex));
+            });
+
+            for (const kw of keywords) {
+                const found = validHeaders.find(h => h.toLowerCase().trim() === kw);
+                if (found) return found;
+            }
+            for (const kw of keywords) {
+                const found = validHeaders.find(h => h.toLowerCase().includes(kw));
+                if (found) return found;
+            }
+            return allowEmpty ? '' : (validHeaders[0] || headers[0] || '');
+        }
+
+        function populateColumnSelectors() {
+            const bar = document.getElementById('columnMapperBar');
+            if (appState.headers.length === 0) {
+                bar.classList.add('hidden');
+                return;
+            }
+            bar.classList.remove('hidden');
+
+            const tidSel = document.getElementById('mapTidSelect');
+            const serSel = document.getElementById('mapSerialSelect');
+            const oldTidSel = document.getElementById('mapOldTidSelect');
+            const oldSerSel = document.getElementById('mapOldSerialSelect');
+            const dateSel = document.getElementById('mapDateSelect');
+
+            const optionsHtml = appState.headers.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+            const optionalHtml = `<option value="">-- None --</option>` + optionsHtml;
+            
+            tidSel.innerHTML = optionsHtml;
+            serSel.innerHTML = optionsHtml;
+            oldTidSel.innerHTML = optionalHtml;
+            oldSerSel.innerHTML = optionalHtml;
+            dateSel.innerHTML = `<option value="">-- Row Order --</option>` + optionsHtml;
+
+            tidSel.value = appState.tidCol;
+            serSel.value = appState.serialCol;
+            oldTidSel.value = appState.oldTidCol;
+            oldSerSel.value = appState.oldSerialCol;
+            dateSel.value = appState.dateCol;
+        }
+
+        // ==========================================
+        // CORE ENGINE: LIVE vs WITHDRAW (REPLACEMENT + DUPLICATES)
+        // ==========================================
+        function parseFlexibleDate(dateStr) {
+            if (!dateStr) return NaN;
+            // Handle DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY (common in BD Excel files like 15.11.2026)
+            const dmyMatch = String(dateStr).trim().match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+            if (dmyMatch) {
+                const day = parseInt(dmyMatch[1], 10);
+                const month = parseInt(dmyMatch[2], 10) - 1;
+                let year = parseInt(dmyMatch[3], 10);
+                if (year < 100) year += 2000;
+                return new Date(year, month, day).getTime();
+            }
+            return Date.parse(dateStr);
+        }
+
+        function reprocessAllData(showNotification = false) {
+            // Sync dropdown selections
+            const tidSel = document.getElementById('mapTidSelect');
+            const serSel = document.getElementById('mapSerialSelect');
+            const oldTidSel = document.getElementById('mapOldTidSelect');
+            const oldSerSel = document.getElementById('mapOldSerialSelect');
+            const dateSel = document.getElementById('mapDateSelect');
+
+            if (tidSel.value) appState.tidCol = tidSel.value;
+            if (serSel.value) appState.serialCol = serSel.value;
+            appState.oldTidCol = oldTidSel.value;
+            appState.oldSerialCol = oldSerSel.value;
+            appState.dateCol = dateSel.value;
+
+            const matchMode = document.getElementById('matchMode').value;
+            const keepMode = document.getElementById('keepMode').value;
+            const extractInlineOld = document.getElementById('extractInlineOld').checked;
+
+            // Sort newest records first
+            const sortedRecords = [...appState.rawRecords].sort((a, b) => {
+                if (keepMode === 'LATEST_UPLOAD_OR_DATE' && appState.dateCol) {
+                    const timeA = parseFlexibleDate(a[appState.dateCol]);
+                    const timeB = parseFlexibleDate(b[appState.dateCol]);
+                    if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+                        return timeB - timeA;
+                    }
+                }
+                return b._uploadOrder - a._uploadOrder;
+            });
+
+            const seenTids = new Map();
+            const seenSerials = new Map();
+            const seenPairs = new Map();
+            const withdrawnOldKeys = new Set();
+
+            const liveList = [];
+            const withdrawList = [];
+            let replacedCount = 0;
+            let dupCount = 0;
+
+            sortedRecords.forEach(record => {
+                const rawTid = cleanIdentifier(record[appState.tidCol]);
+                const rawSerial = cleanIdentifier(record[appState.serialCol]);
+                const rawOldTid = appState.oldTidCol ? cleanIdentifier(record[appState.oldTidCol]) : '';
+                const rawOldSerial = appState.oldSerialCol ? cleanIdentifier(record[appState.oldSerialCol]) : '';
+                const purposeVal = appState.purposeCol ? String(record[appState.purposeCol] || '').toUpperCase() : '';
+
+                const normTid = rawTid.toLowerCase();
+                const normSerial = rawSerial.toLowerCase();
+
+                // 1. Check if this row itself is purely a "WITHDRAW" action (no new replacement terminal)
+                const isPureWithdraw = purposeVal.includes('WITHDRAW') && !purposeVal.includes('REPLACE') && (!rawTid || rawTid === rawOldTid);
+
+                if (isPureWithdraw) {
+                    withdrawList.push({
+                        ...record,
+                        _withdrawType: 'Direct Withdraw',
+                        _withdrawReason: `Direct Withdraw (${record['REASON'] || purposeVal})`
+                    });
+                    dupCount++;
+                    return;
+                }
+
+                // 2. Cross-Row Duplicate Detection for the New/Current Terminal
+                let isDuplicate = false;
+                let reasons = [];
+
+                if (matchMode === 'EITHER') {
+                    const tidMatch = normTid !== '' && seenTids.has(normTid);
+                    const serialMatch = normSerial !== '' && seenSerials.has(normSerial);
+
+                    if (tidMatch && serialMatch) {
+                        isDuplicate = true;
+                        reasons.push(`Duplicate TID (${rawTid}) & POS Serial (${rawSerial})`);
+                    } else if (tidMatch) {
+                        isDuplicate = true;
+                        reasons.push(`Duplicate TID: ${rawTid}`);
+                    } else if (serialMatch) {
+                        isDuplicate = true;
+                        reasons.push(`Duplicate POS Serial: ${rawSerial}`);
+                    }
+                } else if (matchMode === 'BOTH') {
+                    const pairKey = `${normTid}||${normSerial}`;
+                    if ((normTid !== '' || normSerial !== '') && seenPairs.has(pairKey)) {
+                        isDuplicate = true;
+                        reasons.push(`Duplicate TID (${rawTid}) & Serial (${rawSerial})`);
+                    }
+                } else if (matchMode === 'TID_ONLY') {
+                    if (normTid !== '' && seenTids.has(normTid)) {
+                        isDuplicate = true;
+                        reasons.push(`Duplicate TID: ${rawTid}`);
+                    }
+                } else if (matchMode === 'SERIAL_ONLY') {
+                    if (normSerial !== '' && seenSerials.has(normSerial)) {
+                        isDuplicate = true;
+                        reasons.push(`Duplicate POS Serial: ${rawSerial}`);
+                    }
+                }
+
+                if (isDuplicate) {
+                    withdrawList.push({
+                        ...record,
+                        _withdrawType: 'Duplicate Entry',
+                        _withdrawReason: reasons.join(' | ')
+                    });
+                    dupCount++;
+                } else {
+                    // Keep in Live Master List
+                    liveList.push(record);
+                    if (normTid !== '') seenTids.set(normTid, record);
+                    if (normSerial !== '') seenSerials.set(normSerial, record);
+                    seenPairs.set(`${normTid}||${normSerial}`, record);
+                }
+
+                // 3. Inline Replacement Detection (Same Row has OLD TID or OLD POS SERIAL)
+                if (extractInlineOld && (rawOldTid !== '' || rawOldSerial !== '')) {
+                    const oldTidDifferent = rawOldTid !== '' && rawOldTid.toLowerCase() !== normTid;
+                    const oldSerialDifferent = rawOldSerial !== '' && rawOldSerial.toLowerCase() !== normSerial;
+
+                    if (oldTidDifferent || oldSerialDifferent) {
+                        const oldKey = `${rawOldTid.toLowerCase()}||${rawOldSerial.toLowerCase()}`;
+                        // Avoid duplicating the exact same withdrawn old terminal twice
+                        if (!withdrawnOldKeys.has(oldKey)) {
+                            withdrawnOldKeys.add(oldKey);
+
+                            // Create a dedicated Withdraw record representing the old withdrawn device
+                            const withdrawnDeviceRecord = { ...record };
+                            if (appState.tidCol) withdrawnDeviceRecord[appState.tidCol] = rawOldTid || '(Same TID)';
+                            if (appState.serialCol) withdrawnDeviceRecord[appState.serialCol] = rawOldSerial || '(Same Serial)';
+                            if (record['OLD MID'] && record['MID']) withdrawnDeviceRecord['MID'] = record['OLD MID'];
+
+                            const reasonDetail = record['REASON'] ? ` | Reason: ${record['REASON']}` : '';
+                            withdrawList.push({
+                                ...withdrawnDeviceRecord,
+                                _uid: record._uid + '_old',
+                                _parentUid: record._uid,
+                                _withdrawType: 'Replaced Device',
+                                _withdrawReason: `Replaced by New TID: ${rawTid || '-'} / Serial: ${rawSerial || '-'}${reasonDetail}`
+                            });
+                            replacedCount++;
+                        }
+                    }
+                }
+            });
+
+            appState.activeList = liveList;
+            appState.withdrawList = withdrawList;
+            appState.stats.replacedCount = replacedCount;
+            appState.stats.dupCount = dupCount;
+
+            updatePurposeFilterOptions();
+            saveToStorage();
+            updateDashboardUI();
+
+            if (showNotification) {
+                showToast(
+                    `Done! Live: ${liveList.length} terminals | Withdrawn: ${withdrawList.length} (${replacedCount} replaced, ${dupCount} duplicate).`,
+                    "emerald"
+                );
+            }
+        }
+
+        function updatePurposeFilterOptions() {
+            const filterEl = document.getElementById('purposeFilter');
+            if (!appState.purposeCol) {
+                filterEl.classList.add('hidden');
+                return;
+            }
+            filterEl.classList.remove('hidden');
+            const currentVal = filterEl.value;
+            const purposes = new Set();
+            appState.rawRecords.forEach(r => {
+                const p = String(r[appState.purposeCol] || '').trim();
+                if (p) purposes.add(p);
+            });
+            let html = `<option value="">All Purposes (${purposes.size})</option>`;
+            purposes.forEach(p => {
+                html += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+            });
+            filterEl.innerHTML = html;
+            if (Array.from(purposes).includes(currentVal)) {
+                filterEl.value = currentVal;
+            }
+        }
+
+        // ==========================================
+        // UI RENDERING & UPDATES
+        // ==========================================
+        function updateDashboardUI() {
+            document.getElementById('statTotal').textContent = appState.rawRecords.length;
+            document.getElementById('statActive').textContent = appState.activeList.length;
+            document.getElementById('statWithdraw').textContent = appState.withdrawList.length;
+            document.getElementById('statReplacedCount').textContent = appState.stats.replacedCount;
+            document.getElementById('statDupCount').textContent = appState.stats.dupCount;
+
+            document.getElementById('badgeActive').textContent = appState.activeList.length;
+            document.getElementById('badgeWithdraw').textContent = appState.withdrawList.length;
+
+            renderTable();
+        }
+
+        function switchTab(tab) {
+            appState.currentTab = tab;
+            const activeBtn = document.getElementById('tabActiveBtn');
+            const withdrawBtn = document.getElementById('tabWithdrawBtn');
+            const withdrawBanner = document.getElementById('withdrawBanner');
+            const exportLabel = document.getElementById('exportTabLabel');
+
+            if (tab === 'active') {
+                activeBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm transition flex items-center gap-2";
+                withdrawBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2";
+                withdrawBanner.classList.add('hidden');
+                exportLabel.textContent = "Export Live (.xlsx)";
+            } else {
+                withdrawBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm transition flex items-center gap-2";
+                activeBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2";
+                withdrawBanner.classList.remove('hidden');
+                exportLabel.textContent = "Export Withdraw (.xlsx)";
+            }
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const purposeFilter = document.getElementById('purposeFilter').value;
+
+            const sourceList = appState.currentTab === 'active' ? appState.activeList : appState.withdrawList;
+
+            const filtered = sourceList.filter(row => {
+                if (purposeFilter && appState.purposeCol && String(row[appState.purposeCol] || '').trim() !== purposeFilter) {
+                    return false;
+                }
+                if (!query) return true;
+                return appState.headers.some(h => String(row[h] || '').toLowerCase().includes(query)) ||
+                       (row._withdrawReason && row._withdrawReason.toLowerCase().includes(query));
+            });
+
+            if (appState.headers.length === 0 || filtered.length === 0) {
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // Build Table Header
+            let headHtml = `<tr>
+                <th class="py-3.5 px-4 w-12 text-center">#</th>
+                <th class="py-3.5 px-4 whitespace-nowrap">${appState.currentTab === 'active' ? 'Live Status' : 'Withdraw Reason'}</th>`;
+
+            appState.headers.forEach(h => {
+                const isKeyCol = (h === appState.tidCol || h === appState.serialCol);
+                headHtml += `<th class="py-3.5 px-4 whitespace-nowrap ${isKeyCol ? 'text-indigo-600 dark:text-indigo-400' : ''}">
+                    ${escapeHtml(h)}
+                </th>`;
+            });
+
+            headHtml += `<th class="py-3.5 px-4 text-right">Action</th></tr>`;
+            thead.innerHTML = headHtml;
+
+            // Build Table Rows
+            let bodyHtml = '';
+            filtered.forEach((row, index) => {
+                bodyHtml += `<tr class="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="py-3 px-4 text-center font-mono text-xs text-slate-400">${index + 1}</td>`;
+
+                if (appState.currentTab === 'active') {
+                    bodyHtml += `<td class="py-3 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-100/80 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            LIVE
+                        </span>
+                    </td>`;
+                } else {
+                    const isReplaced = row._withdrawType === 'Replaced Device';
+                    const badgeStyle = isReplaced
+                        ? 'bg-amber-100/80 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                        : 'bg-rose-100/80 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+                    bodyHtml += `<td class="py-3 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${badgeStyle}">
+                            <i data-lucide="${isReplaced ? 'refresh-cw' : 'copy-x'}" class="w-3.5 h-3.5"></i>
+                            ${escapeHtml(row._withdrawReason)}
+                        </span>
+                    </td>`;
+                }
+
+                appState.headers.forEach(h => {
+                    const val = row[h] || '-';
+                    if (h === appState.tidCol) {
+                        bodyHtml += `<td class="py-3 px-4 whitespace-nowrap font-mono font-bold text-slate-900 dark:text-white">${escapeHtml(val)}</td>`;
+                    } else if (h === appState.serialCol) {
+                        bodyHtml += `<td class="py-3 px-4 whitespace-nowrap font-mono font-semibold text-indigo-600 dark:text-indigo-400">${escapeHtml(val)}</td>`;
+                    } else if (h === appState.oldTidCol || h === appState.oldSerialCol) {
+                        bodyHtml += `<td class="py-3 px-4 whitespace-nowrap font-mono text-xs text-amber-700 dark:text-amber-400">${escapeHtml(val)}</td>`;
+                    } else {
+                        bodyHtml += `<td class="py-3 px-4 whitespace-nowrap text-slate-700 dark:text-slate-300">${escapeHtml(val)}</td>`;
+                    }
+                });
+
+                const targetUid = row._parentUid || row._uid;
+                bodyHtml += `<td class="py-3 px-4 text-right whitespace-nowrap">
+                    <button onclick="deleteRecord('${targetUid}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition" title="Remove Record">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </td></tr>`;
+            });
+
+            tbody.innerHTML = bodyHtml;
+            lucide.createIcons();
+        }
+
+        function deleteRecord(uid) {
+            appState.rawRecords = appState.rawRecords.filter(r => r._uid !== uid);
+            reprocessAllData(false);
+            showToast("Record removed & counts updated.", "slate");
+        }
+
+        // ==========================================
+        // EXCEL EXPORT (SheetJS)
+        // ==========================================
+        function cleanDataForExport(list, isWithdraw = false) {
+            return list.map((item, idx) => {
+                const exportObj = {
+                    "SL.": idx + 1,
+                    "DASHBOARD_STATUS": isWithdraw ? "WITHDRAWN" : "LIVE"
+                };
+                if (isWithdraw) {
+                    exportObj["WITHDRAW_REASON"] = item._withdrawReason || "";
+                }
+                appState.headers.forEach(h => {
+                    if (h.toUpperCase() !== 'SL.' && h.toUpperCase() !== 'SL') {
+                        exportObj[h] = item[h] || "";
+                    }
+                });
+                return exportObj;
+            });
+        }
+
+        function exportCurrentTab() {
+            if (appState.currentTab === 'active') {
+                if (appState.activeList.length === 0) return showToast("No live records to export.", "amber");
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(cleanDataForExport(appState.activeList, false));
+                XLSX.utils.book_append_sheet(wb, ws, "Live_Master_List");
+                XLSX.writeFile(wb, `Live_POS_Terminals_${getTodayStr()}.xlsx`);
+                showToast("Live Master List exported!", "emerald");
+            } else {
+                if (appState.withdrawList.length === 0) return showToast("Withdraw List is currently empty.", "amber");
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(cleanDataForExport(appState.withdrawList, true));
+                XLSX.utils.book_append_sheet(wb, ws, "Withdraw_List");
+                XLSX.writeFile(wb, `Withdraw_POS_Terminals_${getTodayStr()}.xlsx`);
+                showToast("Withdraw List exported!", "emerald");
+            }
+        }
+
+        function exportFullWorkbook() {
+            if (appState.rawRecords.length === 0) {
+                return showToast("Upload data first before exporting.", "amber");
+            }
+            const wb = XLSX.utils.book_new();
+            
+            const liveSheet = XLSX.utils.json_to_sheet(cleanDataForExport(appState.activeList, false));
+            const withdrawSheet = XLSX.utils.json_to_sheet(cleanDataForExport(appState.withdrawList, true));
+
+            XLSX.utils.book_append_sheet(wb, liveSheet, "Live_Master_List");
+            XLSX.utils.book_append_sheet(wb, withdrawSheet, "Withdraw_List");
+
+            XLSX.writeFile(wb, `POS_Live_&_Withdraw_Report_${getTodayStr()}.xlsx`);
+            showToast("Full Report (Live + Withdraw Sheets) downloaded!", "emerald");
+        }
+
+        function getTodayStr() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // ==========================================
+        // DEMO / SAMPLE DATA GENERATOR (Matching User's Exact Excel Format)
+        // ==========================================
+        function loadSampleData() {
+            const sampleRows = [
+                {
+                    "SL.": "1",
+                    "PURPOSE": "REPLACEMENT",
+                    "CONFIG DATE": "15.11.2026",
+                    "OLD MID": "224052950039991",
+                    "OLD TID": "18006944",
+                    "MID": "224052950039991",
+                    "TID": "18037800",
+                    "MERCHANT NAME": "DESH LOGISTICS CO LTD",
+                    "DBA NAME": "RFL BEST BUY 70880 KALIGONJ",
+                    "ADDRESS": "HOLDING# 1076, KASHIMPUR ROAD, WARD#08, KHULNA",
+                    "CITY": "Jhenaidah",
+                    "LOCATION": "Kaligonj",
+                    "VENDOR": "SSL",
+                    "POS TYPE": "GPRS",
+                    "POS MODEL": "I9100",
+                    "POS SERIAL": "80152619000581",
+                    "OLD POS SERIAL": "80152619000053",
+                    "SIM CARRIER": "ROBI",
+                    "REASON": "POWER PROBLEM",
+                    "SPECIAL FUNCTIONALITY": "RECONFIGURE & REPLACEMENT WITH AMEX EMV",
+                    "Updated By": "Imamul"
+                },
+                {
+                    "SL.": "2",
+                    "PURPOSE": "RECONFIGURE",
+                    "CONFIG DATE": "15.11.2026",
+                    "OLD MID": "",
+                    "OLD TID": "",
+                    "MID": "224052950040112",
+                    "TID": "18037801",
+                    "MERCHANT NAME": "RFL ELECTRONICS LTD",
+                    "DBA NAME": "VISION EMPORIUM UTTARA",
+                    "ADDRESS": "SECTOR 7, UTTARA, DHAKA",
+                    "CITY": "Dhaka",
+                    "LOCATION": "Uttara",
+                    "VENDOR": "SSL",
+                    "POS TYPE": "GPRS",
+                    "POS MODEL": "I9100",
+                    "POS SERIAL": "80152619000602",
+                    "OLD POS SERIAL": "",
+                    "SIM CARRIER": "GRAMEENPHONE",
+                    "REASON": "AMEX EMV UPGRADE",
+                    "SPECIAL FUNCTIONALITY": "RECONFIGURE WITH AMEX EMV",
+                    "Updated By": "Imamul"
+                },
+                {
+                    "SL.": "3",
+                    "PURPOSE": "REPLACEMENT",
+                    "CONFIG DATE": "16.11.2026",
+                    "OLD MID": "224052950040550",
+                    "OLD TID": "18007110",
+                    "MID": "224052950040550",
+                    "TID": "18037805",
+                    "MERCHANT NAME": "PRAN RFL GROUP",
+                    "DBA NAME": "TASTY TREAT MIRPUR 10",
+                    "ADDRESS": "PLOT 14, BLOCK A, MIRPUR 10",
+                    "CITY": "Dhaka",
+                    "LOCATION": "Mirpur",
+                    "VENDOR": "SSL",
+                    "POS TYPE": "GPRS",
+                    "POS MODEL": "I9100",
+                    "POS SERIAL": "80152619000615",
+                    "OLD POS SERIAL": "80152619000119",
+                    "SIM CARRIER": "ROBI",
+                    "REASON": "DISPLAY DAMAGE",
+                    "SPECIAL FUNCTIONALITY": "RECONFIGURE & REPLACEMENT WITH AMEX EMV",
+                    "Updated By": "Imamul"
+                }
+            ];
+
+            ingestNewRows(sampleRows, "15.11.2026 Reconfigure and Replacement with AMEX EMV.xlsx");
+        }
+
+        // ==========================================
+        // MODALS, THEME, LANGUAGE & UTILITIES
+        // ==========================================
+        function confirmClearAll() {
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        function executeClearAll() {
+            appState.rawRecords = [];
+            appState.headers = [];
+            appState.tidCol = '';
+            appState.serialCol = '';
+            appState.oldTidCol = '';
+            appState.oldSerialCol = '';
+            appState.purposeCol = '';
+            appState.dateCol = '';
+            appState.activeList = [];
+            appState.withdrawList = [];
+            appState.stats = { replacedCount: 0, dupCount: 0 };
+            
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('columnMapperBar').classList.add('hidden');
+            document.getElementById('purposeFilter').classList.add('hidden');
+            closeConfirmModal();
+            updateDashboardUI();
+            showToast("All dashboard data has been reset.", "slate");
+        }
+
+        function openGithubModal() {
+            document.getElementById('githubModal').classList.remove('hidden');
+        }
+
+        function closeGithubModal() {
+            document.getElementById('githubModal').classList.add('hidden');
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function toggleLanguage() {
+            appState.lang = appState.lang === 'en' ? 'bn' : 'en';
+            document.getElementById('langLabel').textContent = appState.lang === 'en' ? 'বাংলা' : 'English';
+            
+            const dict = i18n[appState.lang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    el.textContent = dict[key];
+                }
+            });
+        }
+
+        function showToast(message, color = "indigo") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colorMap = {
+                emerald: 'bg-emerald-600 text-white',
+                amber: 'bg-amber-600 text-white',
+                rose: 'bg-rose-600 text-white',
+                indigo: 'bg-indigo-600 text-white',
+                slate: 'bg-slate-800 text-white'
+            };
+
+            toast.className = `${colorMap[color] || colorMap.indigo} px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-medium flex items-center justify-between gap-3 pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+            
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3800);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
