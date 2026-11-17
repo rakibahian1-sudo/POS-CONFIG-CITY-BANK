@@ -30,7 +30,7 @@
     <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Panel: Upload & Column Mapping -->
         <div class="space-y-5">
-            <!-- 1. Excel Upload with Advanced Drag & Drop / Tap support -->
+            <!-- 1. Excel Upload (Drag & Drop + Tap to browse) -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-xs font-bold tracking-wider text-slate-300">1. EXCEL FILE IMPORT</h2>
@@ -250,23 +250,41 @@
             return { gp, robi, bl, others, simName: simVal || "GP (Default)" };
         }
 
+        // Fully Dynamic IPBIN & PORT mapping based on port number
         function getIpBinByPort(port) {
             const p = String(port).trim();
+            
+            let ip1_group = "";
+            let ip2_group = "";
             let p1 = "2450", p2 = "2400";
 
             if (p === "2300") {
+                ip1_group = "IP1=192.168.95.7,IP2=192.168.95.8";
+                ip2_group = "IP1=192.168.95.102,IP2=192.168.95.103";
                 p1 = "2300"; p2 = "2350";
             } else if (p === "2350") {
+                ip1_group = "IP1=192.168.95.8,IP2=192.168.95.7";
+                ip2_group = "IP1=192.168.95.103,IP2=192.168.95.102";
                 p1 = "2350"; p2 = "2300";
             } else if (p === "2400") {
+                ip1_group = "IP1=192.168.95.7,IP2=192.168.95.8";
+                ip2_group = "IP1=192.168.95.102,IP2=192.168.95.103";
                 p1 = "2400"; p2 = "2450";
             } else if (p === "2450") {
+                ip1_group = "IP1=192.168.95.8,IP2=192.168.95.7";
+                ip2_group = "IP1=192.168.95.103,IP2=192.168.95.102";
                 p1 = "2450"; p2 = "2400";
             } else {
+                // Default fallback
+                ip1_group = "IP1=192.168.95.8,IP2=192.168.95.7";
+                ip2_group = "IP1=192.168.95.103,IP2=192.168.95.102";
                 p1 = p || "2450"; p2 = "2400";
             }
 
-            return `IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}`;
+            const ip3_group = "IP1=192.168.94.251,IP2=192.168.94.252";
+            const ip4_group = "IP1=172.31.1.43,IP2=172.31.1.43";
+
+            return `${ip1_group}:${ip2_group}:${ip3_group}:${ip4_group}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}`;
         }
 
         function parseEmiDetails(row) {
