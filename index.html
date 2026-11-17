@@ -42,8 +42,8 @@
                 </div>
                 <div class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 text-center cursor-pointer relative transition">
                     <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
-                    <p id="fileStatus" class="text-xs text-slate-300 font-medium">Drag & drop your Excel sheet here or click to browse</p>
-                    <p class="text-[11px] text-slate-500 mt-1">Auto-detects header row (Row 1 or Row 2)</p>
+                    <p id="fileStatus" class="text-xs text-slate-300 font-medium">Drag & drop here</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Supports multi-phase Excel sheets</p>
                 </div>
             </div>
 
@@ -60,23 +60,19 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Merchant Name Column (Max 24 chars)</label>
-                    <select id="merchantCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 28 chars)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21-28 chars)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Comma separated for ADDR1-5)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Max 29 chars per line)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">SIM Carrier Column *</label>
+                    <label class="text-xs text-slate-400 block mb-1">SIM Carrier Column (Default: GP)</label>
                     <select id="simCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Port Number Column (Default: 2450)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Port Number Column *</label>
                     <select id="portCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
             </div>
@@ -89,9 +85,9 @@
                 <div class="flex items-center gap-3">
                     <span id="rowCount" class="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-semibold">Data Table (0)</span>
                     <select id="emiMode" class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
-                        <option value="AUTO">EMI: Auto (From Excel Special Functionality)</option>
-                        <option value="1">EMI: Force ENABLED (EMI=1)</option>
-                        <option value="0">EMI: Force DISABLED (EMI=0)</option>
+                        <option value="AUTO">EMI: Auto (From Excel)</option>
+                        <option value="1">EMI: Force ENABLED (1)</option>
+                        <option value="0">EMI: Force DISABLED (0)</option>
                     </select>
                 </div>
                 <button onclick="downloadZip()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-emerald-950">
@@ -101,22 +97,21 @@
 
             <!-- Data Preview Table -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="overflow-x-auto max-h-[340px] border border-slate-800 rounded-lg">
+                <div class="overflow-x-auto max-h-[300px] border border-slate-800 rounded-lg">
                     <table id="dataTable" class="w-full text-left text-xs whitespace-nowrap">
                         <thead class="bg-slate-800 text-slate-300 sticky top-0">
                             <tr>
                                 <th class="p-2.5">#</th>
                                 <th class="p-2.5">TID</th>
                                 <th class="p-2.5">MID (15-Digit)</th>
-                                <th class="p-2.5">MERCHANT NAME</th>
                                 <th class="p-2.5">DBA NAME</th>
                                 <th class="p-2.5">ADDRESS</th>
-                                <th class="p-2.5">SIM</th>
+                                <th class="p-2.5">PORT</th>
                                 <th class="p-2.5">PREVIEW</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800 text-slate-300">
-                            <tr><td colspan="8" class="p-8 text-center text-slate-500">No data loaded. Drag & drop an Excel sheet or click "Load Demo Data".</td></tr>
+                            <tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop here or click "Load Demo Data".</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -126,27 +121,30 @@
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-xs font-bold tracking-wider text-slate-300">CONFIG OUTPUT PREVIEW <span id="previewTitle" class="text-blue-400 font-normal"></span></h3>
-                    <button onclick="copyPreview()" class="text-[11px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-slate-300">Copy Text</button>
+                    <div class="flex gap-2">
+                        <button onclick="copyPreview()" class="text-[11px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-slate-300">Copy Text</button>
+                        <button onclick="saveCurrentPreview()" class="text-[11px] bg-blue-600 hover:bg-blue-500 px-2.5 py-1 rounded text-white font-semibold">Save File (.txt)</button>
+                    </div>
                 </div>
-                <textarea id="configPreview" readonly rows="10" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-[11px] text-emerald-400 focus:outline-none" placeholder="Click 'View' on any row above to inspect its generated .txt content..."></textarea>
+                <textarea id="configPreview" rows="10" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-[11px] text-emerald-400 focus:outline-none" placeholder="Click 'View' on any row above to inspect and edit its generated .txt content..."></textarea>
             </div>
         </div>
     </main>
 
     <script>
         let rawData = [];
+        let activeRowIndex = 0;
 
         function loadDemoData() {
             rawData = [
                 {
-                    "TID": "18037800",
-                    "MID": "9107428633",
-                    "MERCHANT NAME": "DESH LOGISTICS CO LTD",
-                    "DBA NAME": "RFL BEST BUY 70880 KALIGONJ",
-                    "ADDRESS": "MULGAON,SHADANPARA,KALIGONJ,GAZIPUR",
-                    "SIM CARRIER": "ROBI",
+                    "TID": "18037816",
+                    "MID": "9106720048",
+                    "DBA NAME": "J F CORPORATION",
+                    "ADDRESS": "KA-32/2,JAGANNATHPUR,SOUDI MASJID ROAD,VATARA,DHAKA",
+                    "SIM CARRIER": "GP",
                     "PORT NUMBER": "2450",
-                    "SPECIAL FUNCTIONALITY": "ENABLE EMI FEATURE (TENURE 3-12 MONTHS)"
+                    "SPECIAL FUNCTIONALITY": "DISABLE EMI"
                 }
             ];
             document.getElementById('fileBadge').innerText = "Demo Data Loaded";
@@ -168,7 +166,6 @@
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
 
-                // Find header row dynamically (looks for row containing 'TID' and 'MID')
                 let headerIndex = 0;
                 for (let i = 0; i < Math.min(rows.length, 10); i++) {
                     const rowStr = rows[i].map(c => String(c).trim().toUpperCase());
@@ -200,7 +197,6 @@
             const mapping = {
                 tidCol: ['TID'],
                 midCol: ['MID'],
-                merchantCol: ['MERCHANT NAME', 'MERCHANT'],
                 dbaCol: ['DBA NAME', 'DBA'],
                 addrCol: ['ADDRESS'],
                 simCol: ['SIM CARRIER', 'SIM'],
@@ -214,7 +210,6 @@
                     select.innerHTML += `<option value="${h}">${h}</option>`;
                 });
 
-                // Auto match column name
                 const matched = headers.find(h => mapping[selectId].includes(h.toUpperCase()));
                 if (matched) select.value = matched;
             });
@@ -225,55 +220,60 @@
             return clean ? clean.padStart(15, '0') : "000000000000000";
         }
 
-        function buildConfigText(row, index) {
+        function buildConfigText(row) {
             const tCol = document.getElementById('tidCol').value;
             const mCol = document.getElementById('midCol').value;
-            const merchCol = document.getElementById('merchantCol').value;
             const dCol = document.getElementById('dbaCol').value;
             const aCol = document.getElementById('addrCol').value;
-            const sCol = document.getElementById('simCol').value;
             const pCol = document.getElementById('portCol').value;
 
-            const tid = (tCol ? row[tCol] : "") || `TID_${index + 1}`;
+            const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
-            const merchName = (merchCol ? row[merchCol] : "").substring(0, 24);
-            const dbaRaw = (dCol ? row[dCol] : "");
             
-            // Split DBA if longer than 24 chars into MERCHANTNAME1 & MERCHANTNAME2, or use Merchant Name + DBA
-            let mName1 = merchName || dbaRaw.substring(0, 24);
-            let mName2 = dbaRaw.substring(0, 28);
-            if (!merchName && dbaRaw.length > 24) {
-                mName1 = dbaRaw.substring(0, 24);
-                mName2 = dbaRaw.substring(24, 52);
-            }
+            // DBA Name formatting (max 21-28 chars per line)
+            const dbaRaw = (dCol ? row[dCol] : "").trim();
+            const mName1 = dbaRaw.substring(0, 21);
+            const mName2 = dbaRaw.substring(21, 49);
 
-            // Address split into ADDR1 - ADDR5
+            // Address split (29 chars max per line as requested)
             const rawAddr = aCol ? (row[aCol] || "") : "";
-            const addrParts = rawAddr.split(',').map(p => p.trim().substring(0, 36));
-            const a1 = addrParts[0] || "";
-            const a2 = addrParts[1] || "";
-            const a3 = addrParts[2] || "";
-            const a4 = addrParts[3] || "";
-            const a5 = addrParts[4] || "";
+            // Chunk or split by comma, ensuring each line respects ~29 chars limit
+            let addrParts = rawAddr.split(',').map(p => p.trim());
+            
+            // Re-chunk parts if any part is longer than 29 chars
+            let formattedAddrs = [];
+            addrParts.forEach(part => {
+                while (part.length > 29) {
+                    formattedAddrs.push(part.substring(0, 29));
+                    part = part.substring(29);
+                }
+                if (part) formattedAddrs.push(part);
+            });
 
-            // SIMBIN logic
-            const sim = (sCol ? row[sCol] : "").toUpperCase();
-            const bl = sim.includes("BANGLALINK") ? "1" : "0";
-            const gp = sim.includes("GRAMEEN") || sim === "GP" ? "1" : "0";
-            const robi = sim.includes("ROBI") || sim.includes("AIRTEL") ? "1" : "0";
-            const others = (bl === "0" && gp === "0" && robi === "0" && sim !== "") ? "1" : "0";
+            // If DBA name is very long and has > 2 lines overflow, or handle address lines
+            const a1 = formattedAddrs[0] || "";
+            const a2 = formattedAddrs[1] || "";
+            const a3 = formattedAddrs[2] || "";
+            const a4 = formattedAddrs[3] || "";
+            const a5 = formattedAddrs[4] || "";
 
-            // Port logic
+            // SIM Carrier: Only GP (Grameenphone = 1, others = 0)
+            const gp = "1";
+            const bl = "0";
+            const robi = "0";
+            const others = "0";
+
+            // Port number from Excel
             const port = (pCol && row[pCol]) ? row[pCol] : "2450";
 
             // EMI logic
             const emiMode = document.getElementById('emiMode').value;
-            let emiFlag = "1";
+            let emiFlag = "0";
             if (emiMode === "1" || emiMode === "0") {
                 emiFlag = emiMode;
             } else {
                 const spec = String(row["SPECIAL FUNCTIONALITY"] || "").toUpperCase();
-                emiFlag = spec.includes("DISABLE EMI") ? "0" : "1";
+                emiFlag = spec.includes("ENABLE EMI") ? "1" : "0";
             }
 
             return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
@@ -284,7 +284,7 @@ IPBIN:IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP
 TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
 MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
 PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
-LIMIT:999:999:001:99999999:50000:500000:500000:3,6,9,12
+LIMIT:999:999:001:99999999:50000:500000:500000:3,6,9,12,18,24,30,36
 CARDEMICHARGEBIN:3,3:6,4:9,6.5:12,8:18,10.5:24,13:36,18
 SLIPPRINT:MERCHANTCOPY=1:CUSTOMERCOPY=0:LOGON=1:CARDDETAILSREPORT=0:SETTLEDETAILSREPORT=0:ERRORTXN=1:PRINTTVR=0:PRINTTSI=0:QRDSPLAY=0:TRANSACTIONSOUND=0:CARDDETAILS=1:PAPERLESS=0
 PRINTLOGO:BANKLOGO=1:MERCHANTLOGO=0
@@ -368,15 +368,14 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
             tbody.innerHTML = '';
             const tCol = document.getElementById('tidCol').value;
             const mCol = document.getElementById('midCol').value;
-            const merchCol = document.getElementById('merchantCol').value;
             const dCol = document.getElementById('dbaCol').value;
             const aCol = document.getElementById('addrCol').value;
-            const sCol = document.getElementById('simCol').value;
+            const pCol = document.getElementById('portCol').value;
 
             document.getElementById('rowCount').innerText = `Data Table (${rawData.length})`;
 
             if (rawData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-500">No data loaded. Drag & drop an Excel sheet or click "Load Demo Data".</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop here or click "Load Demo Data".</td></tr>`;
                 return;
             }
 
@@ -387,10 +386,9 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
                         <td class="p-2.5 text-slate-400">${index + 1}</td>
                         <td class="p-2.5 font-mono text-blue-400">${tCol ? (row[tCol] || '') : ''}</td>
                         <td class="p-2.5 font-mono">${midFormatted}</td>
-                        <td class="p-2.5">${merchCol ? (row[merchCol] || '') : ''}</td>
                         <td class="p-2.5">${dCol ? (row[dCol] || '') : ''}</td>
                         <td class="p-2.5 max-w-[180px] truncate">${aCol ? (row[aCol] || '') : ''}</td>
-                        <td class="p-2.5">${sCol ? (row[sCol] || '') : ''}</td>
+                        <td class="p-2.5">${pCol ? (row[pCol] || '') : '2450'}</td>
                         <td class="p-2.5">
                             <button onclick="previewRow(${index})" class="bg-slate-800 hover:bg-blue-600 text-slate-200 px-2 py-1 rounded text-[11px] transition">View</button>
                         </td>
@@ -401,10 +399,11 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
 
         function previewRow(index) {
             if (!rawData[index]) return;
+            activeRowIndex = index;
             const tCol = document.getElementById('tidCol').value;
-            const tid = (tCol ? rawData[index][tCol] : "") || `TID_${index + 1}`;
+            const tid = (tCol ? rawData[index][tCol] : "").trim() || `TID_${index + 1}`;
             document.getElementById('previewTitle').innerText = `(${tid}.txt)`;
-            document.getElementById('configPreview').value = buildConfigText(rawData[index], index);
+            document.getElementById('configPreview').value = buildConfigText(rawData[index]);
         }
 
         function copyPreview() {
@@ -414,14 +413,35 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
             alert("Config text copied to clipboard!");
         }
 
+        function saveCurrentPreview() {
+            if (rawData.length === 0) {
+                alert("No data available to save!");
+                return;
+            }
+            const tCol = document.getElementById('tidCol').value;
+            const tid = (tCol ? rawData[activeRowIndex][tCol] : "").trim() || `TID_${activeRowIndex + 1}`;
+            const content = document.getElementById('configPreview').value;
+
+            const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${tid}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
         function resetAll() {
             rawData = [];
+            activeRowIndex = 0;
             document.getElementById('excelFile').value = "";
-            document.getElementById('fileStatus').innerText = "Drag & drop your Excel sheet here or click to browse";
+            document.getElementById('fileStatus').innerText = "Drag & drop here";
             document.getElementById('fileBadge').innerText = "No file loaded";
             document.getElementById('configPreview').value = "";
             document.getElementById('previewTitle').innerText = "";
-            ['tidCol', 'midCol', 'merchantCol', 'dbaCol', 'addrCol', 'simCol', 'portCol'].forEach(id => {
+            ['tidCol', 'midCol', 'dbaCol', 'addrCol', 'simCol', 'portCol'].forEach(id => {
                 document.getElementById(id).innerHTML = '';
             });
             updateTable();
@@ -443,7 +463,7 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
             const zip = new JSZip();
             rawData.forEach((row, index) => {
                 const tid = (row[tCol] || `TID_${index + 1}`).trim();
-                const content = buildConfigText(row, index);
+                const content = buildConfigText(row);
                 zip.file(`${tid}.txt`, content);
             });
 
