@@ -63,7 +63,7 @@
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Word-safe, starts from fresh line after DBA overflow)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Preserves original format/commas, word-safe)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -319,10 +319,10 @@
             return { emiFlag, tenureStr };
         }
 
-        // Word-safe text splitter helper
+        // Word-safe text splitters preserving original spacing and commas
         function getWords(text) {
             if (!text) return [];
-            return text.split(/[\s,]+/).filter(Boolean);
+            return String(text).trim().split(/\s+/).filter(Boolean);
         }
 
         function buildConfigText(row) {
@@ -373,8 +373,7 @@
                 i++;
             }
 
-            // 2. WORD SAFE ADDRESS (Max 29 chars per line)
-            // If DBA overflowed into Line 1, actual Address starts from the NEXT fresh line!
+            // 2. WORD SAFE ADDRESS (Max 29 chars per line, preserving original formatting/commas)
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
@@ -400,7 +399,7 @@
                 currentLineIdx++;
             }
 
-            // Now put the actual Address words safely line by line (max 29 chars each) without mixing with DBA
+            // Now put the actual Address words safely line by line (max 29 chars each, preserving original spacing/commas)
             addrWords.forEach(word => {
                 if (currentLineIdx >= 5) return;
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
@@ -430,7 +429,7 @@ TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${
 SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
 SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
 IPBIN:${ipbinStr}
-TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPOON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
+TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
 MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
 PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
 LIMIT:999:999:001:99999999:50000:500000:500000:${tenureStr}
@@ -550,7 +549,6 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
                 `;
             });
 
-            // Also update preview when table updates
             if (rawData.length > 0) {
                 previewRow(activeRowIndex || 0);
             }
