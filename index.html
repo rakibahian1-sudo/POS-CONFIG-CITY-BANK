@@ -30,16 +30,19 @@
     <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Panel: Upload & Column Mapping -->
         <div class="space-y-5">
-            <!-- 1. Excel Upload -->
+            <!-- 1. Excel Upload with Advanced Drag & Drop / Tap support -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-xs font-bold tracking-wider text-slate-300">1. EXCEL FILE IMPORT</h2>
                     <span id="fileBadge" class="text-[11px] text-slate-500">No file loaded</span>
                 </div>
-                <div class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 text-center cursor-pointer relative transition">
-                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
-                    <p id="fileStatus" class="text-xs text-slate-300 font-medium">Drag & drop here</p>
-                    <p class="text-[11px] text-slate-500 mt-1">Supports multi-phase Excel sheets</p>
+                <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 text-center cursor-pointer relative transition bg-slate-950/40">
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event)">
+                    <div class="pointer-events-none space-y-1">
+                        <svg class="w-8 h-8 mx-auto text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p id="fileStatus" class="text-xs text-slate-300 font-medium">Drag & drop Excel file here or Tap to browse</p>
+                        <p class="text-[11px] text-slate-500">Supports .xlsx, .xls, .csv</p>
+                    </div>
                 </div>
             </div>
 
@@ -104,7 +107,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800 text-slate-300">
-                            <tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above.</td></tr>
+                            <tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above or tap to select.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -128,9 +131,42 @@
         let rawData = [];
         let activeRowIndex = 0;
 
-        function handleFileUpload(e) {
+        // Setup Drag and Drop Event Listeners
+        const dropZone = document.getElementById('dropZone');
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('border-blue-500', 'bg-blue-500/10');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                document.getElementById('excelFile').files = files;
+                processFile(files[0]);
+            }
+        }, false);
+
+        function handleFileSelect(e) {
             const file = e.target.files[0];
-            if (!file) return;
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
             document.getElementById('fileStatus').innerText = file.name;
             document.getElementById('fileBadge').innerText = "Loaded";
 
@@ -216,16 +252,21 @@
 
         function getIpBinByPort(port) {
             const p = String(port).trim();
+            let p1 = "2450", p2 = "2400";
+
             if (p === "2300") {
-                return `IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2300,PORT2=2400:PORT1=2300,PORT2=2400:PORT1=2300,PORT2=2400:PORT1=2300,PORT2=2400`;
+                p1 = "2300"; p2 = "2350";
             } else if (p === "2350") {
-                return `IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2350,PORT2=2400:PORT1=2350,PORT2=2400:PORT1=2350,PORT2=2400:PORT1=2350,PORT2=2400`;
+                p1 = "2350"; p2 = "2300";
             } else if (p === "2400") {
-                return `IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2400,PORT2=2400:PORT1=2400,PORT2=2400:PORT1=2400,PORT2=2400,PORT1=2400,PORT2=2400`;
+                p1 = "2400"; p2 = "2450";
+            } else if (p === "2450") {
+                p1 = "2450"; p2 = "2400";
             } else {
-                // Default / 2450
-                return `IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400`;
+                p1 = p || "2450"; p2 = "2400";
             }
+
+            return `IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}`;
         }
 
         function parseEmiDetails(row) {
@@ -327,7 +368,7 @@ TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${
 SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
 SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
 IPBIN:${ipbinStr}
-TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
+TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPOON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
 MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
 PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
 LIMIT:999:999:001:99999999:50000:500000:500000:${tenureStr}
@@ -420,7 +461,7 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
             document.getElementById('rowCount').innerText = `Data Table (${rawData.length})`;
 
             if (rawData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above or tap to select.</td></tr>`;
                 return;
             }
 
