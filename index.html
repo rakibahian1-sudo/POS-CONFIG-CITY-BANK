@@ -59,11 +59,11 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Flows to Address if long)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Word-safe, flows to Address if long)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column *</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Word-safe, starts from fresh line after DBA overflow)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -243,7 +243,7 @@
             } else if (simVal.includes("BL") || simVal.includes("BANGLALINK")) {
                 bl = "1";
             } else if (simVal.includes("GP") || simVal.includes("GRAMEEN") || simVal === "") {
-                gp = "1"; // Default to GP if blank or GP
+                gp = "1"; 
             } else {
                 others = "1";
             }
@@ -315,6 +315,7 @@
             return { emiFlag, tenureStr };
         }
 
+        // Word-safe text splitter helper
         function getWords(text) {
             if (!text) return [];
             return text.split(/[\s,]+/).filter(Boolean);
@@ -330,14 +331,13 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. Process DBA Name across Merchant Name 1 (max 21 chars) and Merchant Name 2
-            const dbaRaw = (dCol ? row[dCol] : "").trim();
+            // 1. WORD SAFE DBA NAME (Merchant Name 1 max 21 chars, Merchant Name 2 max 28 chars)
+            const dbaRaw = (dCol ? row[dbaCol || dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
             let mLine1 = "", mLine2 = "";
             let remainingDbaWords = [];
 
-            // Fit into MERCHANTNAME1 (max 21 chars)
             let temp1 = "";
             let i = 0;
             while (i < dbaWords.length) {
@@ -351,7 +351,6 @@
             }
             mLine1 = temp1;
 
-            // Fit remaining into MERCHANTNAME2
             let temp2 = "";
             while (i < dbaWords.length) {
                 let test = temp2 ? temp2 + " " + dbaWords[i] : dbaWords[i];
@@ -364,25 +363,43 @@
             }
             mLine2 = temp2;
 
-            // If DBA words still remain, collect them to prepend to Address Line 1
+            // Extra DBA words that didn't fit in Merchant Name 2 will overflow to Address
             while (i < dbaWords.length) {
                 remainingDbaWords.push(dbaWords[i]);
                 i++;
             }
 
-            // 2. Process Address (ADDR1 to ADDR5, max 29 chars each)
+            // 2. WORD SAFE ADDRESS (Max 29 chars per line)
+            // If DBA overflowed, it occupies Address Line 1. Actual Address will start from the NEXT line (Address Line 2 onwards)!
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
-            
-            // Combine remaining DBA words with address words so overflow goes to Address Line 1 then Line 2
-            const combinedAddrWords = [...remainingDbaWords, ...addrWords];
 
             let addrLines = ["", "", "", "", ""];
             let currentLineIdx = 0;
 
-            combinedAddrWords.forEach(word => {
+            // First, fill Address Line 1 with any remaining DBA overflow words (word safe)
+            remainingDbaWords.forEach(word => {
                 if (currentLineIdx >= 5) return;
-                let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + "," + word : word;
+                let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
+                if (testLine.length <= 29) {
+                    addrLines[currentLineIdx] = testLine;
+                } else {
+                    currentLineIdx++;
+                    if (currentLineIdx < 5) {
+                        addrLines[currentLineIdx] = word;
+                    }
+                }
+            });
+
+            // If DBA overflowed into Line 1, ensure actual address starts from the NEXT fresh line
+            if (remainingDbaWords.length > 0 && addrLines[0] !== "") {
+                currentLineIdx++;
+            }
+
+            // Now put the actual Address words safely line by line (max 29 chars each) without mixing with DBA on the same line
+            addrWords.forEach(word => {
+                if (currentLineIdx >= 5) return;
+                let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
                 if (testLine.length <= 29) {
                     addrLines[currentLineIdx] = testLine;
                 } else {
