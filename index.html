@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS Terminal Config Generator</title>
+    <title>POS Terminal Config Generator - City Bank</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for Excel Parsing -->
@@ -11,9 +11,452 @@
     <!-- JSZip for ZIP file generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
     <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-md">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold tracking-wider">POS TERMINAL CONFIG GENERATOR</h1>
-                <p class="text-xs text-slate-400">Parse Excel data into HDT, TCT & parameter batch configs per TID
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600/20 border border-blue-500/40 p-2 rounded-lg text-blue-400 font-bold">POS</div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg md:text-xl font-bold tracking-wider">POS TERMINAL CONFIG GENERATOR</h1>
+                        <span class="text-[10px] bg-teal-950 text-teal-400 border border-teal-800 px-2 py-0.5 rounded-full font-semibold">CITY BANK</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Parse Excel data into HDT, TCT & parameter batch configs per TID</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="loadDemoData()" class="bg-amber-600 hover:bg-amber-500 text-xs font-semibold px-3 py-2 rounded transition">Load Demo Data</button>
+                <button onclick="resetAll()" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded transition">Reset All</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Panel: Upload & Column Mapping -->
+        <div class="space-y-5">
+            <!-- 1. Excel Upload -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xs font-bold tracking-wider text-slate-300">1. EXCEL FILE IMPORT</h2>
+                    <span id="fileBadge" class="text-[11px] text-slate-500">No file loaded</span>
+                </div>
+                <div class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 text-center cursor-pointer relative transition">
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+                    <p id="fileStatus" class="text-xs text-slate-300 font-medium">Drag & drop your Excel sheet here or click to browse</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Auto-detects header row (Row 1 or Row 2)</p>
+                </div>
+            </div>
+
+            <!-- 2. Column Mapping -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+                <h2 class="text-xs font-bold tracking-wider text-slate-300">2. COLUMN MAPPING</h2>
+                
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">TID Column *</label>
+                    <select id="tidCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">MID Column * (Auto padded to 15 digits)</label>
+                    <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Merchant Name Column (Max 24 chars)</label>
+                    <select id="merchantCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 28 chars)</label>
+                    <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Comma separated for ADDR1-5)</label>
+                    <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">SIM Carrier Column *</label>
+                    <select id="simCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Port Number Column (Default: 2450)</label>
+                    <select id="portCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Controls, Data Table & Output -->
+        <div class="lg:col-span-2 space-y-5">
+            <!-- Action Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <span id="rowCount" class="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-semibold">Data Table (0)</span>
+                    <select id="emiMode" class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                        <option value="AUTO">EMI: Auto (From Excel Special Functionality)</option>
+                        <option value="1">EMI: Force ENABLED (EMI=1)</option>
+                        <option value="0">EMI: Force DISABLED (EMI=0)</option>
+                    </select>
+                </div>
+                <button onclick="downloadZip()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-emerald-950">
+                    Download ZIP (.txt configs)
+                </button>
+            </div>
+
+            <!-- Data Preview Table -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div class="overflow-x-auto max-h-[340px] border border-slate-800 rounded-lg">
+                    <table id="dataTable" class="w-full text-left text-xs whitespace-nowrap">
+                        <thead class="bg-slate-800 text-slate-300 sticky top-0">
+                            <tr>
+                                <th class="p-2.5">#</th>
+                                <th class="p-2.5">TID</th>
+                                <th class="p-2.5">MID (15-Digit)</th>
+                                <th class="p-2.5">MERCHANT NAME</th>
+                                <th class="p-2.5">DBA NAME</th>
+                                <th class="p-2.5">ADDRESS</th>
+                                <th class="p-2.5">SIM</th>
+                                <th class="p-2.5">PREVIEW</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 text-slate-300">
+                            <tr><td colspan="8" class="p-8 text-center text-slate-500">No data loaded. Drag & drop an Excel sheet or click "Load Demo Data".</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Live Config Output Preview -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold tracking-wider text-slate-300">CONFIG OUTPUT PREVIEW <span id="previewTitle" class="text-blue-400 font-normal"></span></h3>
+                    <button onclick="copyPreview()" class="text-[11px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-slate-300">Copy Text</button>
+                </div>
+                <textarea id="configPreview" readonly rows="10" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-[11px] text-emerald-400 focus:outline-none" placeholder="Click 'View' on any row above to inspect its generated .txt content..."></textarea>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let rawData = [];
+
+        function loadDemoData() {
+            rawData = [
+                {
+                    "TID": "18037800",
+                    "MID": "9107428633",
+                    "MERCHANT NAME": "DESH LOGISTICS CO LTD",
+                    "DBA NAME": "RFL BEST BUY 70880 KALIGONJ",
+                    "ADDRESS": "MULGAON,SHADANPARA,KALIGONJ,GAZIPUR",
+                    "SIM CARRIER": "ROBI",
+                    "PORT NUMBER": "2450",
+                    "SPECIAL FUNCTIONALITY": "ENABLE EMI FEATURE (TENURE 3-12 MONTHS)"
+                }
+            ];
+            document.getElementById('fileBadge').innerText = "Demo Data Loaded";
+            populateColumns(Object.keys(rawData[0]));
+            updateTable();
+            previewRow(0);
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('fileStatus').innerText = file.name;
+            document.getElementById('fileBadge').innerText = "Loaded";
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+
+                // Find header row dynamically (looks for row containing 'TID' and 'MID')
+                let headerIndex = 0;
+                for (let i = 0; i < Math.min(rows.length, 10); i++) {
+                    const rowStr = rows[i].map(c => String(c).trim().toUpperCase());
+                    if (rowStr.includes("TID") && rowStr.includes("MID")) {
+                        headerIndex = i;
+                        break;
+                    }
+                }
+
+                const headers = rows[headerIndex].map(h => String(h).trim());
+                rawData = rows.slice(headerIndex + 1)
+                    .filter(r => r.some(cell => String(cell).trim() !== ""))
+                    .map(r => {
+                        let obj = {};
+                        headers.forEach((h, idx) => {
+                            if (h) obj[h] = String(r[idx] !== undefined ? r[idx] : "").trim();
+                        });
+                        return obj;
+                    });
+
+                populateColumns(headers.filter(Boolean));
+                updateTable();
+                if (rawData.length > 0) previewRow(0);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateColumns(headers) {
+            const mapping = {
+                tidCol: ['TID'],
+                midCol: ['MID'],
+                merchantCol: ['MERCHANT NAME', 'MERCHANT'],
+                dbaCol: ['DBA NAME', 'DBA'],
+                addrCol: ['ADDRESS'],
+                simCol: ['SIM CARRIER', 'SIM'],
+                portCol: ['PORT NUMBER', 'PORT']
+            };
+
+            Object.keys(mapping).forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">-- Select --</option>';
+                headers.forEach(h => {
+                    select.innerHTML += `<option value="${h}">${h}</option>`;
+                });
+
+                // Auto match column name
+                const matched = headers.find(h => mapping[selectId].includes(h.toUpperCase()));
+                if (matched) select.value = matched;
+            });
+        }
+
+        function formatMID(mid) {
+            const clean = String(mid || "").replace(/\D/g, "");
+            return clean ? clean.padStart(15, '0') : "000000000000000";
+        }
+
+        function buildConfigText(row, index) {
+            const tCol = document.getElementById('tidCol').value;
+            const mCol = document.getElementById('midCol').value;
+            const merchCol = document.getElementById('merchantCol').value;
+            const dCol = document.getElementById('dbaCol').value;
+            const aCol = document.getElementById('addrCol').value;
+            const sCol = document.getElementById('simCol').value;
+            const pCol = document.getElementById('portCol').value;
+
+            const tid = (tCol ? row[tCol] : "") || `TID_${index + 1}`;
+            const mid = formatMID(mCol ? row[mCol] : "");
+            const merchName = (merchCol ? row[merchCol] : "").substring(0, 24);
+            const dbaRaw = (dCol ? row[dCol] : "");
+            
+            // Split DBA if longer than 24 chars into MERCHANTNAME1 & MERCHANTNAME2, or use Merchant Name + DBA
+            let mName1 = merchName || dbaRaw.substring(0, 24);
+            let mName2 = dbaRaw.substring(0, 28);
+            if (!merchName && dbaRaw.length > 24) {
+                mName1 = dbaRaw.substring(0, 24);
+                mName2 = dbaRaw.substring(24, 52);
+            }
+
+            // Address split into ADDR1 - ADDR5
+            const rawAddr = aCol ? (row[aCol] || "") : "";
+            const addrParts = rawAddr.split(',').map(p => p.trim().substring(0, 36));
+            const a1 = addrParts[0] || "";
+            const a2 = addrParts[1] || "";
+            const a3 = addrParts[2] || "";
+            const a4 = addrParts[3] || "";
+            const a5 = addrParts[4] || "";
+
+            // SIMBIN logic
+            const sim = (sCol ? row[sCol] : "").toUpperCase();
+            const bl = sim.includes("BANGLALINK") ? "1" : "0";
+            const gp = sim.includes("GRAMEEN") || sim === "GP" ? "1" : "0";
+            const robi = sim.includes("ROBI") || sim.includes("AIRTEL") ? "1" : "0";
+            const others = (bl === "0" && gp === "0" && robi === "0" && sim !== "") ? "1" : "0";
+
+            // Port logic
+            const port = (pCol && row[pCol]) ? row[pCol] : "2450";
+
+            // EMI logic
+            const emiMode = document.getElementById('emiMode').value;
+            let emiFlag = "1";
+            if (emiMode === "1" || emiMode === "0") {
+                emiFlag = emiMode;
+            } else {
+                const spec = String(row["SPECIAL FUNCTIONALITY"] || "").toUpperCase();
+                emiFlag = spec.includes("DISABLE EMI") ? "0" : "1";
+            }
+
+            return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
+TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(24)=${mName1}:MERCHANTNAME2(28)=${mName2}:2489:0000:0000:0000:0000:24896925
+SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
+SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
+IPBIN:IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=${port},PORT2=2400:PORT1=${port},PORT2=2400:PORT1=${port},PORT2=2400:PORT1=${port},PORT2=2400
+TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
+MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
+PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
+LIMIT:999:999:001:99999999:50000:500000:500000:3,6,9,12
+CARDEMICHARGEBIN:3,3:6,4:9,6.5:12,8:18,10.5:24,13:36,18
+SLIPPRINT:MERCHANTCOPY=1:CUSTOMERCOPY=0:LOGON=1:CARDDETAILSREPORT=0:SETTLEDETAILSREPORT=0:ERRORTXN=1:PRINTTVR=0:PRINTTSI=0:QRDSPLAY=0:TRANSACTIONSOUND=0:CARDDETAILS=1:PAPERLESS=0
+PRINTLOGO:BANKLOGO=1:MERCHANTLOGO=0
+EXPMASKING:EXPMASKMC=0:EXPMASKCC=0:EXPMASKDT=0:EXPMASKPREAUTH=0:EXPMASKDISP=0:EXPMASKSHOWTXN=0:EXPMASKEMI=0:EXPMASKERRRP=0
+PANMASKING:PANMASKMC=1:PANMASKCC=0:PANMASKDT=1:PANMASKPREAUTH=1:PANMASKDISP=1:PANMASKSHOWTXN=1:PANMASKEMI=1:PANMASKERRRP=1
+EMIBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+LOUNGEBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+MICROATMBIN:5175550000000000,5175559999999999,16:5195070000000000,5195079999999999,16:5286310000000000,5286319999999999,16:4105200000000000,4105209999999999,16:300000000000000,399999999999999,15:6291104200000000,6291104299999999,16:6399960200000000,6399960299999999,16
+PRINTBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+BINWISELIMIT:0001:99999999:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
+CDT0:400000000000:499999999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT1:409765000000:409765009999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT2:410520000000:410520999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT3:410517110000:410517119999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT4:410517120000:410517129999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT5:410517240000:410517249999:12,13,14,15,16,17,18,19:VISA:11111111111
+CTD6:411806000000:411806999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT7:413320000000:413320999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CTD8:421475050000:421475059999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT9:421475060000:421475069999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT10:429906000000:429906999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT11:430733000000:430733999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT12:432643000000:432643999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT13:433727000000:433727999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT14:435720000000:435720999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT15:439338000000:439338999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT16:439416000000:439416999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT17:449855000000:449855999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT18:458735010000:458735019999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT19:474867000000:474867999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT20:481761000000:481761999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT21:482200000000:482200999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT22:484398000000:484398999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT23:485140000000:485140999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT24:490939000000:490939999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT25:491017000000:491017999999:12,13,14,15,16,17,18,19:VISA:11111111111
+CDT26:500000000000:599999999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT27:517555000000:517555999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT28:519507000000:519507999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT29:519625000000:519625999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT30:528631000000:528631999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT31:531756000000:531756999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT32:533265000000:533265999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT33:534787000000:534787999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT34:534938740000:534938749999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT35:542412850000:542412859999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT36:545842000000:545842999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT37:222100000000:272099999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
+CDT38:100000000000:199999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
+CDT39:900000000000:999999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
+CDT40:700000000000:799999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
+CDT41:600000000000:699999999999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT42:626296450000:626296459999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT43:629110420000:629110429999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT44:800000000000:899999999999:12,13,14,15,16,17,18,19:UPI:11111111111
+CDT45:300000000000:399999999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT46:341305000000:341305999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT47:341306000000:341306999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT48:342156000000:342156999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT49:370642000000:370642999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT50:371598000000:371598999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT51:371599000000:371599999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT52:376947000000:376947999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT53:376948000000:376948999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT54:376949000000:376949999999:12,13,14,15,16,17,18,19:AMEX:11111111111
+CDT55:639996000000:639996999999:12,13,14,15,16,17,18,19:TAKAPAY:11111111111
+CDT56:639996020000:639996029999:12,13,14,15,16,17,18,19:CITY TAKAPAY:11111111111
+EDT0:A0000000031010:VSDC:0010000000:D84004F800:D84000A800:000000:500001:99999999
+EDT1:A0000000032010:VISA ELECT:0010000000:D84004F800:D84000A800:000000:500001:99999999
+EDT2:A0000000033010:VISA INTERLINK:0010000000:D84004F800:D84000A800:000000:500001:99999999
+EDT3:A0000000041010:MASTERCARD:0000000000:F45084800C:F45084800C:000000:500000:99999999
+EDT4:A0000000043060:MAESTRO:0000000000:F45084800C:F45084800C:000000:500000:99999999
+EDT5:A00000033301:UPI:0000000000:D800FC9800:084000A800:000000:500000:99999999
+EDT6:A00000002501:AMEX:0010000000:DE00FC9800:DC50FC9800:00000:500001:99999999
+EDT7:A00000091010:TAKAPAY:0000000000:F45084800C:F45084800C:000000:500000:99999999
+OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
+        }
+
+        function updateTable() {
+            const tbody = document.querySelector('#dataTable tbody');
+            tbody.innerHTML = '';
+            const tCol = document.getElementById('tidCol').value;
+            const mCol = document.getElementById('midCol').value;
+            const merchCol = document.getElementById('merchantCol').value;
+            const dCol = document.getElementById('dbaCol').value;
+            const aCol = document.getElementById('addrCol').value;
+            const sCol = document.getElementById('simCol').value;
+
+            document.getElementById('rowCount').innerText = `Data Table (${rawData.length})`;
+
+            if (rawData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-500">No data loaded. Drag & drop an Excel sheet or click "Load Demo Data".</td></tr>`;
+                return;
+            }
+
+            rawData.forEach((row, index) => {
+                const midFormatted = mCol ? formatMID(row[mCol]) : '';
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50">
+                        <td class="p-2.5 text-slate-400">${index + 1}</td>
+                        <td class="p-2.5 font-mono text-blue-400">${tCol ? (row[tCol] || '') : ''}</td>
+                        <td class="p-2.5 font-mono">${midFormatted}</td>
+                        <td class="p-2.5">${merchCol ? (row[merchCol] || '') : ''}</td>
+                        <td class="p-2.5">${dCol ? (row[dCol] || '') : ''}</td>
+                        <td class="p-2.5 max-w-[180px] truncate">${aCol ? (row[aCol] || '') : ''}</td>
+                        <td class="p-2.5">${sCol ? (row[sCol] || '') : ''}</td>
+                        <td class="p-2.5">
+                            <button onclick="previewRow(${index})" class="bg-slate-800 hover:bg-blue-600 text-slate-200 px-2 py-1 rounded text-[11px] transition">View</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function previewRow(index) {
+            if (!rawData[index]) return;
+            const tCol = document.getElementById('tidCol').value;
+            const tid = (tCol ? rawData[index][tCol] : "") || `TID_${index + 1}`;
+            document.getElementById('previewTitle').innerText = `(${tid}.txt)`;
+            document.getElementById('configPreview').value = buildConfigText(rawData[index], index);
+        }
+
+        function copyPreview() {
+            const textarea = document.getElementById('configPreview');
+            textarea.select();
+            document.execCommand('copy');
+            alert("Config text copied to clipboard!");
+        }
+
+        function resetAll() {
+            rawData = [];
+            document.getElementById('excelFile').value = "";
+            document.getElementById('fileStatus').innerText = "Drag & drop your Excel sheet here or click to browse";
+            document.getElementById('fileBadge').innerText = "No file loaded";
+            document.getElementById('configPreview').value = "";
+            document.getElementById('previewTitle').innerText = "";
+            ['tidCol', 'midCol', 'merchantCol', 'dbaCol', 'addrCol', 'simCol', 'portCol'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+            updateTable();
+        }
+
+        async function downloadZip() {
+            if (rawData.length === 0) {
+                alert("Please load an Excel sheet or click 'Load Demo Data' first!");
+                return;
+            }
+
+            const tCol = document.getElementById('tidCol').value;
+            const mCol = document.getElementById('midCol').value;
+            if (!tCol || !mCol) {
+                alert("Please map at least TID and MID columns!");
+                return;
+            }
+
+            const zip = new JSZip();
+            rawData.forEach((row, index) => {
+                const tid = (row[tCol] || `TID_${index + 1}`).trim();
+                const content = buildConfigText(row, index);
+                zip.file(`${tid}.txt`, content);
+            });
+
+            const blob = await zip.generateAsync({ type: "blob" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "POS_Terminal_Configs.zip";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
