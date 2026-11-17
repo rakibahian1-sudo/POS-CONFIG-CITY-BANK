@@ -13,7 +13,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
     <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-md">
-        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600/20 border border-blue-500/40 p-2 rounded-lg text-blue-400 font-bold">POS</div>
                 <div>
@@ -23,10 +23,6 @@
                     </div>
                     <p class="text-xs text-slate-400">Parse Excel data into HDT, TCT & parameter batch configs per TID</p>
                 </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="loadDemoData()" class="bg-amber-600 hover:bg-amber-500 text-xs font-semibold px-3 py-2 rounded transition">Load Demo Data</button>
-                <button onclick="resetAll()" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded transition">Reset All</button>
             </div>
         </div>
     </header>
@@ -60,11 +56,11 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21-28 chars)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars/line, word-safe)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Max 29 chars per line)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Max 29 chars/line, word-safe)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -75,21 +71,18 @@
                     <label class="text-xs text-slate-400 block mb-1">Port Number Column *</label>
                     <select id="portCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Special Functionality / EMI Column *</label>
+                    <select id="specCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
+                </div>
             </div>
         </div>
 
         <!-- Right Panel: Controls, Data Table & Output -->
         <div class="lg:col-span-2 space-y-5">
             <!-- Action Bar -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap justify-between items-center gap-3">
-                <div class="flex items-center gap-3">
-                    <span id="rowCount" class="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-semibold">Data Table (0)</span>
-                    <select id="emiMode" class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
-                        <option value="AUTO">EMI: Auto (From Excel)</option>
-                        <option value="1">EMI: Force ENABLED (1)</option>
-                        <option value="0">EMI: Force DISABLED (0)</option>
-                    </select>
-                </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
+                <span id="rowCount" class="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-semibold">Data Table (0)</span>
                 <button onclick="downloadZip()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-emerald-950">
                     Download ZIP (.txt configs)
                 </button>
@@ -105,13 +98,13 @@
                                 <th class="p-2.5">TID</th>
                                 <th class="p-2.5">MID (15-Digit)</th>
                                 <th class="p-2.5">DBA NAME</th>
-                                <th class="p-2.5">ADDRESS</th>
+                                <th class="p-2.5">EMI & TENURE</th>
                                 <th class="p-2.5">PORT</th>
                                 <th class="p-2.5">PREVIEW</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800 text-slate-300">
-                            <tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop here or click "Load Demo Data".</td></tr>
+                            <tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -135,24 +128,6 @@
         let rawData = [];
         let activeRowIndex = 0;
 
-        function loadDemoData() {
-            rawData = [
-                {
-                    "TID": "18037816",
-                    "MID": "9106720048",
-                    "DBA NAME": "J F CORPORATION",
-                    "ADDRESS": "KA-32/2,JAGANNATHPUR,SOUDI MASJID ROAD,VATARA,DHAKA",
-                    "SIM CARRIER": "GP",
-                    "PORT NUMBER": "2450",
-                    "SPECIAL FUNCTIONALITY": "DISABLE EMI"
-                }
-            ];
-            document.getElementById('fileBadge').innerText = "Demo Data Loaded";
-            populateColumns(Object.keys(rawData[0]));
-            updateTable();
-            previewRow(0);
-        }
-
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -169,7 +144,7 @@
                 let headerIndex = 0;
                 for (let i = 0; i < Math.min(rows.length, 10); i++) {
                     const rowStr = rows[i].map(c => String(c).trim().toUpperCase());
-                    if (rowStr.includes("TID") && rowStr.includes("MID")) {
+                    if (rowStr.includes("TID") || rowStr.includes("MID") || rowStr.includes("SPECIAL FUNCTIONALITY")) {
                         headerIndex = i;
                         break;
                     }
@@ -200,7 +175,8 @@
                 dbaCol: ['DBA NAME', 'DBA'],
                 addrCol: ['ADDRESS'],
                 simCol: ['SIM CARRIER', 'SIM'],
-                portCol: ['PORT NUMBER', 'PORT']
+                portCol: ['PORT NUMBER', 'PORT'],
+                specCol: ['SPECIAL FUNCTIONALITY', 'EMI', 'FUNCTIONALITY']
             };
 
             Object.keys(mapping).forEach(selectId => {
@@ -220,6 +196,60 @@
             return clean ? clean.padStart(15, '0') : "000000000000000";
         }
 
+        // Parse EMI status & Tenure list (e.g., "ENABLE EMI FEATURE (TENURE 3-12 MONTHS)" -> EMI=1, "3,6,9,12")
+        function parseEmiDetails(row) {
+            const sCol = document.getElementById('specCol').value;
+            const rawText = (sCol && row[sCol]) ? String(row[sCol]).toUpperCase() : Object.values(row).join(" ").toUpperCase();
+            
+            const allTenures = [3, 6, 9, 12, 18, 24, 30, 36];
+            let emiFlag = "0";
+            let tenureStr = "3,6,9,12,18,24,30,36";
+
+            if (rawText.includes("ENABLE EMI")) {
+                emiFlag = "1";
+                // Match range like "3-12", "3 - 6", "3-24", "3-36", "6-18"
+                const rangeMatch = rawText.match(/(\d+)\s*-\s*(\d+)/);
+                if (rangeMatch) {
+                    const startM = parseInt(rangeMatch[1], 10);
+                    const endM = parseInt(rangeMatch[2], 10);
+                    const filtered = allTenures.filter(m => m >= startM && m <= endM);
+                    if (filtered.length > 0) {
+                        tenureStr = filtered.join(",");
+                    }
+                } else {
+                    // Check if specific comma-separated tenures are listed
+                    const found = allTenures.filter(m => new RegExp(`\\b${m}\\b`).test(rawText));
+                    if (found.length > 0) {
+                        tenureStr = found.join(",");
+                    }
+                }
+            } else {
+                emiFlag = "0";
+            }
+
+            return { emiFlag, tenureStr };
+        }
+
+        // Word-safe chunking helper function
+        function wrapTextByWord(text, maxLen) {
+            if (!text) return ["", ""];
+            let words = text.split(/[\s,]+/);
+            let lines = [""];
+            let currentLineIndex = 0;
+
+            words.forEach(word => {
+                if (!word) return;
+                let testLine = lines[currentLineIndex] ? lines[currentLineIndex] + " " + word : word;
+                if (testLine.length <= maxLen) {
+                    lines[currentLineIndex] = testLine;
+                } else {
+                    currentLineIndex++;
+                    lines[currentLineIndex] = word;
+                }
+            });
+            return lines;
+        }
+
         function buildConfigText(row) {
             const tCol = document.getElementById('tidCol').value;
             const mCol = document.getElementById('midCol').value;
@@ -230,34 +260,38 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
             
-            // DBA Name formatting (max 21-28 chars per line)
+            // DBA Name max 21 chars per line (word-safe)
             const dbaRaw = (dCol ? row[dCol] : "").trim();
-            const mName1 = dbaRaw.substring(0, 21);
-            const mName2 = dbaRaw.substring(21, 49);
+            const dbaLines = wrapTextByWord(dbaRaw, 21);
+            const mName1 = (dbaLines[0] || "").substring(0, 24);
+            const mName2 = (dbaLines[1] || "").substring(0, 28);
 
-            // Address split (29 chars max per line as requested)
+            // Address max 29 chars per line up to 5 lines (word-safe)
             const rawAddr = aCol ? (row[aCol] || "") : "";
-            // Chunk or split by comma, ensuring each line respects ~29 chars limit
-            let addrParts = rawAddr.split(',').map(p => p.trim());
-            
-            // Re-chunk parts if any part is longer than 29 chars
-            let formattedAddrs = [];
-            addrParts.forEach(part => {
-                while (part.length > 29) {
-                    formattedAddrs.push(part.substring(0, 29));
-                    part = part.substring(29);
+            let addrWords = rawAddr.split(/[\s,]+/);
+            let addrLines = [""];
+            let lineIdx = 0;
+
+            addrWords.forEach(word => {
+                if (!word) return;
+                let test = addrLines[lineIdx] ? addrLines[lineIdx] + "," + word : word;
+                if (test.length <= 29) {
+                    addrLines[lineIdx] = test;
+                } else {
+                    lineIdx++;
+                    if (lineIdx < 5) {
+                        addrLines[lineIdx] = word;
+                    }
                 }
-                if (part) formattedAddrs.push(part);
             });
 
-            // If DBA name is very long and has > 2 lines overflow, or handle address lines
-            const a1 = formattedAddrs[0] || "";
-            const a2 = formattedAddrs[1] || "";
-            const a3 = formattedAddrs[2] || "";
-            const a4 = formattedAddrs[3] || "";
-            const a5 = formattedAddrs[4] || "";
+            const a1 = addrLines[0] || "";
+            const a2 = addrLines[1] || "";
+            const a3 = addrLines[2] || "";
+            const a4 = addrLines[3] || "";
+            const a5 = addrLines[4] || "";
 
-            // SIM Carrier: Only GP (Grameenphone = 1, others = 0)
+            // SIM Carrier: GP only
             const gp = "1";
             const bl = "0";
             const robi = "0";
@@ -266,15 +300,8 @@
             // Port number from Excel
             const port = (pCol && row[pCol]) ? row[pCol] : "2450";
 
-            // EMI logic
-            const emiMode = document.getElementById('emiMode').value;
-            let emiFlag = "0";
-            if (emiMode === "1" || emiMode === "0") {
-                emiFlag = emiMode;
-            } else {
-                const spec = String(row["SPECIAL FUNCTIONALITY"] || "").toUpperCase();
-                emiFlag = spec.includes("ENABLE EMI") ? "1" : "0";
-            }
+            // EMI & Dynamic Tenure
+            const { emiFlag, tenureStr } = parseEmiDetails(row);
 
             return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
 TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(24)=${mName1}:MERCHANTNAME2(28)=${mName2}:2489:0000:0000:0000:0000:24896925
@@ -284,7 +311,7 @@ IPBIN:IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP
 TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMP=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
 MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
 PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
-LIMIT:999:999:001:99999999:50000:500000:500000:3,6,9,12,18,24,30,36
+LIMIT:999:999:001:99999999:50000:500000:500000:${tenureStr}
 CARDEMICHARGEBIN:3,3:6,4:9,6.5:12,8:18,10.5:24,13:36,18
 SLIPPRINT:MERCHANTCOPY=1:CUSTOMERCOPY=0:LOGON=1:CARDDETAILSREPORT=0:SETTLEDETAILSREPORT=0:ERRORTXN=1:PRINTTVR=0:PRINTTSI=0:QRDSPLAY=0:TRANSACTIONSOUND=0:CARDDETAILS=1:PAPERLESS=0
 PRINTLOGO:BANKLOGO=1:MERCHANTLOGO=0
@@ -369,25 +396,29 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
             const tCol = document.getElementById('tidCol').value;
             const mCol = document.getElementById('midCol').value;
             const dCol = document.getElementById('dbaCol').value;
-            const aCol = document.getElementById('addrCol').value;
             const pCol = document.getElementById('portCol').value;
 
             document.getElementById('rowCount').innerText = `Data Table (${rawData.length})`;
 
             if (rawData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop here or click "Load Demo Data".</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above.</td></tr>`;
                 return;
             }
 
             rawData.forEach((row, index) => {
                 const midFormatted = mCol ? formatMID(row[mCol]) : '';
+                const { emiFlag, tenureStr } = parseEmiDetails(row);
+                const emiBadge = emiFlag === "1" 
+                    ? `<span class="text-emerald-400 font-semibold">ON (${tenureStr})</span>` 
+                    : `<span class="text-slate-500">OFF (0)</span>`;
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/50">
                         <td class="p-2.5 text-slate-400">${index + 1}</td>
                         <td class="p-2.5 font-mono text-blue-400">${tCol ? (row[tCol] || '') : ''}</td>
                         <td class="p-2.5 font-mono">${midFormatted}</td>
                         <td class="p-2.5">${dCol ? (row[dCol] || '') : ''}</td>
-                        <td class="p-2.5 max-w-[180px] truncate">${aCol ? (row[aCol] || '') : ''}</td>
+                        <td class="p-2.5 text-[11px]">${emiBadge}</td>
                         <td class="p-2.5">${pCol ? (row[pCol] || '') : '2450'}</td>
                         <td class="p-2.5">
                             <button onclick="previewRow(${index})" class="bg-slate-800 hover:bg-blue-600 text-slate-200 px-2 py-1 rounded text-[11px] transition">View</button>
@@ -433,23 +464,9 @@ OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
             window.URL.revokeObjectURL(url);
         }
 
-        function resetAll() {
-            rawData = [];
-            activeRowIndex = 0;
-            document.getElementById('excelFile').value = "";
-            document.getElementById('fileStatus').innerText = "Drag & drop here";
-            document.getElementById('fileBadge').innerText = "No file loaded";
-            document.getElementById('configPreview').value = "";
-            document.getElementById('previewTitle').innerText = "";
-            ['tidCol', 'midCol', 'dbaCol', 'addrCol', 'simCol', 'portCol'].forEach(id => {
-                document.getElementById(id).innerHTML = '';
-            });
-            updateTable();
-        }
-
         async function downloadZip() {
             if (rawData.length === 0) {
-                alert("Please load an Excel sheet or click 'Load Demo Data' first!");
+                alert("Please load an Excel sheet first!");
                 return;
             }
 
