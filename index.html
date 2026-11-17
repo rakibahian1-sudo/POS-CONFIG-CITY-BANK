@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS Terminal Config Generator - City Bank</title>
     <!-- Tailwind CSS CDN -->
+    <script src="https://tailwindcss.com"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for Excel Parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -59,11 +60,11 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars/line, word-safe)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Flows to Address if long)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Max 29 chars/line, word-safe)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column *</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -250,10 +251,8 @@
             return { gp, robi, bl, others, simName: simVal || "GP (Default)" };
         }
 
-        // Fully Dynamic IPBIN & PORT mapping based on port number
         function getIpBinByPort(port) {
             const p = String(port).trim();
-            
             let ip1_group = "";
             let ip2_group = "";
             let p1 = "2450", p2 = "2400";
@@ -275,7 +274,6 @@
                 ip2_group = "IP1=192.168.95.103,IP2=192.168.95.102";
                 p1 = "2450"; p2 = "2400";
             } else {
-                // Default fallback
                 ip1_group = "IP1=192.168.95.8,IP2=192.168.95.7";
                 ip2_group = "IP1=192.168.95.103,IP2=192.168.95.102";
                 p1 = p || "2450"; p2 = "2400";
@@ -318,23 +316,10 @@
             return { emiFlag, tenureStr };
         }
 
-        function wrapTextByWord(text, maxLen) {
-            if (!text) return ["", ""];
-            let words = text.split(/[\s,]+/);
-            let lines = [""];
-            let currentLineIndex = 0;
-
-            words.forEach(word => {
-                if (!word) return;
-                let testLine = lines[currentLineIndex] ? lines[currentLineIndex] + " " + word : word;
-                if (testLine.length <= maxLen) {
-                    lines[currentLineIndex] = testLine;
-                } else {
-                    currentLineIndex++;
-                    lines[currentLineIndex] = word;
-                }
-            });
-            return lines;
+        // Word-safe chunking helper function
+        function getWords(text) {
+            if (!text) return [];
+            return text.split(/[\s,]+/).filter(Boolean);
         }
 
         function buildConfigText(row) {
@@ -346,26 +331,66 @@
 
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
-            
+
+            // 1. Process DBA Name across Merchant Name 1 (max 24) and Merchant Name 2 (max 28)
             const dbaRaw = (dCol ? row[dCol] : "").trim();
-            const dbaLines = wrapTextByWord(dbaRaw, 21);
-            const mName1 = (dbaLines[0] || "").substring(0, 24);
-            const mName2 = (dbaLines[1] || "").substring(0, 28);
+            const dbaWords = getWords(dbaRaw);
+            
+            let mLine1 = "", mLine2 = "";
+            let remainingDbaWords = [];
 
-            const rawAddr = aCol ? (row[aCol] || "") : "";
-            let addrWords = rawAddr.split(/[\s,]+/);
-            let addrLines = [""];
-            let lineIdx = 0;
-
-            addrWords.forEach(word => {
-                if (!word) return;
-                let test = addrLines[lineIdx] ? addrLines[lineIdx] + "," + word : word;
-                if (test.length <= 29) {
-                    addrLines[lineIdx] = test;
+            // Fit into MERCHANTNAME1 (max 24)
+            let temp1 = "";
+            let i = 0;
+            while (i < dbaWords.length) {
+                let test = temp1 ? temp1 + " " + dbaWords[i] : dbaWords[i];
+                if (test.length <= 24) {
+                    temp1 = test;
+                    i++;
                 } else {
-                    lineIdx++;
-                    if (lineIdx < 5) {
-                        addrLines[lineIdx] = word;
+                    break;
+                }
+            }
+            mLine1 = temp1;
+
+            // Fit remaining into MERCHANTNAME2 (max 28)
+            let temp2 = "";
+            while (i < dbaWords.length) {
+                let test = temp2 ? temp2 + " " + dbaWords[i] : dbaWords[i];
+                if (test.length <= 28) {
+                    temp2 = test;
+                    i++;
+                } else {
+                    break;
+                }
+            }
+            mLine2 = temp2;
+
+            // If DBA words still remain, collect them to prepend to Address Line 1
+            while (i < dbaWords.length) {
+                remainingDbaWords.push(dbaWords[i]);
+                i++;
+            }
+
+            // 2. Process Address (ADDR1 to ADDR5, max 29 chars each)
+            const rawAddr = aCol ? (row[aCol] || "") : "";
+            const addrWords = getWords(rawAddr);
+            
+            // Combine remaining DBA words with address words
+            const combinedAddrWords = [...remainingDbaWords, ...addrWords];
+
+            let addrLines = ["", "", "", "", ""];
+            let currentLineIdx = 0;
+
+            combinedAddrWords.forEach(word => {
+                if (currentLineIdx >= 5) return;
+                let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + "," + word : word;
+                if (testLine.length <= 29) {
+                    addrLines[currentLineIdx] = testLine;
+                } else {
+                    currentLineIdx++;
+                    if (currentLineIdx < 5) {
+                        addrLines[currentLineIdx] = word;
                     }
                 }
             });
@@ -382,7 +407,7 @@
             const { emiFlag, tenureStr } = parseEmiDetails(row);
 
             return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
-TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(24)=${mName1}:MERCHANTNAME2(28)=${mName2}:2489:0000:0000:0000:0000:24896925
+TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(24)=${mLine1}:MERCHANTNAME2(28)=${mLine2}:2489:0000:0000:0000:0000:24896925
 SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
 SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
 IPBIN:${ipbinStr}
