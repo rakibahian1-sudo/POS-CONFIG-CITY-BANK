@@ -59,7 +59,7 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars each, balanced split, overflow to address)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 24 & 28 chars, overflow to address)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -313,73 +313,52 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. DBA NAME BALANCED SPLIT (max 21 chars each, word-safe)
+            // 1. MERCHANTNAME1 (max 24) & MERCHANTNAME2 (max 28) word-safe split
             const dbaRaw = (dCol ? row[dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
             let mLine1 = "", mLine2 = "";
             let remainingDbaWords = [];
 
-            const fullDba = dbaWords.join(" ");
-            if (fullDba.length <= 21) {
-                mLine1 = fullDba;
-                mLine2 = "";
-            } else {
-                // Find balanced split for 2 lines <= 21 chars each
-                let validSplits = [];
-                for (let k = 1; k < dbaWords.length; k++) {
-                    let l1 = wordsSlice = dbaWords.slice(0, k).join(" ");
-                    let l2 = wordsSlice2 = dbaWords.slice(k).join(" ");
-                    if (l1.length <= 21 && l2.length <= 21) {
-                        validSplits.push({ l1, l2, diff: Math.abs(l1.length - l2.length) });
-                    }
-                }
-
-                if (validSplits.length > 0) {
-                    validSplits.sort((a, b) => a.diff - b.diff);
-                    mLine1 = validSplits[0].l1;
-                    mLine2 = validSplits[0].l2;
+            let temp1 = "";
+            let i = 0;
+            while (i < dbaWords.length) {
+                let test = temp1 ? temp1 + " " + dbaWords[i] : dbaWords[i];
+                if (test.length <= 24) {
+                    temp1 = test;
+                    i++;
                 } else {
-                    // Fallback to greedy if no clean split fits both
-                    let temp1 = "";
-                    let i = 0;
-                    while (i < dbaWords.length) {
-                        let nextWord = dbaWords[i];
-                        let test = temp1 ? temp1 + " " + nextWord : nextWord;
-                        if (test.length <= 21) {
-                            temp1 = test;
-                            i++;
-                        } else {
-                            break;
-                        }
-                    }
-                    mLine1 = temp1;
-                    let temp2 = "";
-                    while (i < dbaWords.length) {
-                        let test = temp2 ? temp2 + " " + dbaWords[i] : dbaWords[i];
-                        if (test.length <= 21) {
-                            temp2 = test;
-                            i++;
-                        } else {
-                            break;
-                        }
-                    }
-                    mLine2 = temp2;
-                    while (i < dbaWords.length) {
-                        remainingDbaWords.push(dbaWords[i]);
-                        i++;
-                    }
+                    break;
                 }
             }
+            mLine1 = temp1;
 
-            // 2. ADDRESS LINES & DBA OVERFLOW (Strict word-safe max 29 chars per line, ADDR5 unlimited)
+            let temp2 = "";
+            let j = i;
+            while (j < dbaWords.length) {
+                let test = temp2 ? temp2 + " " + dbaWords[j] : dbaWords[j];
+                if (test.length <= 28) {
+                    temp2 = test;
+                    j++;
+                } else {
+                    break;
+                }
+            }
+            mLine2 = temp2;
+            i = j;
+
+            while (i < dbaWords.length) {
+                remainingDbaWords.push(dbaWords[i]);
+                i++;
+            }
+
+            // 2. ADDRESS LINES (ADDR1, ADDR2, ADDR3, ADDR4 max 29 chars strict word-safe, ADDR5 unlimited)
             let addrLines = ["", "", "", "", ""];
             let maxChars = 29;
             let currentLineIdx = 0;
 
-            // If DBA overflowed beyond MERCHANTNAME1 & MERCHANTNAME2, put overflow into address lines first
-            if (remainingDbaWords.length > 0) {
-                remainingDbaWords.forEach(word => {
+            function appendWordsToAddr(words) {
+                words.forEach(word => {
                     if (currentLineIdx >= 4) {
                         addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
                         return;
@@ -396,6 +375,11 @@
                         }
                     }
                 });
+            }
+
+            // If DBA has overflow words, place them first into address lines
+            if (remainingDbaWords.length > 0) {
+                appendWordsToAddr(remainingDbaWords);
                 // Ensure Excel address starts from a fresh line after DBA overflow
                 if (addrLines[currentLineIdx] !== "") {
                     currentLineIdx++;
@@ -405,25 +389,7 @@
             // 3. FILL EXCEL ORIGINAL ADDRESS STARTING FROM THE NEXT LINE CLEANLY
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
-
-            addrWords.forEach(word => {
-                if (currentLineIdx >= 4) {
-                    addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
-                    return;
-                }
-
-                let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
-                if (testLine.length <= maxChars) {
-                    addrLines[currentLineIdx] = testLine;
-                } else {
-                    currentLineIdx++;
-                    if (currentLineIdx >= 4) {
-                        addrLines[4] = word;
-                    } else {
-                        addrLines[currentLineIdx] = word;
-                    }
-                }
-            });
+            appendWordsToAddr(addrWords);
 
             const a1 = addrLines[0] || "";
             const a2 = addrLines[1] || "";
@@ -437,7 +403,7 @@
             const { emiFlag, tenureStr } = parseEmiDetails(row);
 
             return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
-TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(21)=${mLine1}:MERCHANTNAME2(21)=${mLine2}:2489:0000:0000:0000:0000:24896925
+TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(24)=${mLine1}:MERCHANTNAME2(28)=${mLine2}:2489:0000:0000:0000:0000:24896925
 SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
 SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
 IPBIN:${ipbinStr}
