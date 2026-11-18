@@ -63,7 +63,7 @@
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (5 lines, max 29 chars each, word-safe)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (5 lines, word-safe max 29 chars per line)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -379,14 +379,13 @@
                 i++;
             }
 
-            // 2. STRICT WORD-SAFE ADDRESS (5 lines, Max 29 chars per line, preserving original formatting & commas)
+            // 2. STRICT WORD-SAFE ADDRESS (5 lines, max 29 chars per line, original format/commas preserved)
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
             let addrLines = ["", "", "", "", ""];
             let currentLineIdx = 0;
 
-            // Fill Address Line 1 with DBA overflow words (Word Safe, max 29 chars)
             remainingDbaWords.forEach(word => {
                 if (currentLineIdx >= 5) return;
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
@@ -400,12 +399,10 @@
                 }
             });
 
-            // If DBA overflowed into Line 1, ensure actual address starts from the NEXT fresh line
             if (remainingDbaWords.length > 0 && addrLines[0] !== "") {
                 currentLineIdx++;
             }
 
-            // Put the actual Address words safely line by line (max 29 chars each, word-safe, preserving commas/formatting)
             addrWords.forEach(word => {
                 if (currentLineIdx >= 5) return;
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
@@ -431,7 +428,7 @@
             const { emiFlag, tenureStr } = parseEmiDetails(row);
 
             return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
-TCT:ADDR1(29)=${a1}:ADDR2(29)=${a2}:ADDR3(29)=${a3}:ADDR4(29)=${a4}:ADDR5(29)=${a5}:MERCHANTNAME1(21)=${mLine1}:MERCHANTNAME2(21)=${mLine2}:2489:0000:0000:0000:0000:24896925
+TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(21)=${mLine1}:MERCHANTNAME2(21)=${mLine2}:2489:0000:0000:0000:0000:24896925
 SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
 SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
 IPBIN:${ipbinStr}
