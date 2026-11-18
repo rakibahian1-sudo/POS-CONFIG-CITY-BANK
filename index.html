@@ -59,7 +59,7 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Word-safe, max 21 chars each)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Word-safe, max 21 chars, overflow to address)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -313,7 +313,7 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. DBA NAME (max 21 chars each, word-safe)
+            // 1. DBA NAME (max 21 chars each, word-safe, overflow to address)
             const dbaRaw = (dCol ? row[dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
@@ -358,7 +358,7 @@
                 i++;
             }
 
-            // 2. ADDRESS LINES (ADDR1: max 29, ADDR2/3/4: max 30, ADDR5: no rules)
+            // 2. ADDRESS LINES (ADDR1: max 29, ADDR2/3/4: max 30, ADDR5: no rules) + DBA Overflow included
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
@@ -366,11 +366,9 @@
             let addrLines = ["", "", "", "", ""];
             let currentLineIdx = 0;
 
-            // Define limits for lines 1 to 4
             const limits = [29, 30, 30, 30];
 
             allAddrWords.forEach(word => {
-                // If we are on ADDR5 (index 4) or beyond, put everything remaining here without any limit
                 if (currentLineIdx >= 4) {
                     addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
                     return;
