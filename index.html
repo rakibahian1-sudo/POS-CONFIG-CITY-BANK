@@ -63,7 +63,7 @@
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Lines 1-4 max 29 chars strict, Line 5 unlimited)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Lines 1-4 max 29 chars, Line 5 no rules)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -358,7 +358,7 @@
                 i++;
             }
 
-            // 2. ADDRESS LINES: ADDR1 to ADDR4 strict max 29 chars word-safe, ADDR5 takes ALL remaining without limit
+            // 2. ADDRESS LINES: ADDR1, ADDR2, ADDR3, ADDR4 max 29 chars strict (word-safe). ADDR5 takes ALL remaining text without limits.
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
@@ -367,8 +367,8 @@
             let currentLineIdx = 0;
 
             allAddrWords.forEach(word => {
-                // If we reach ADDR5 (index 4), put everything remaining here without splitting limit
-                if (currentLineIdx >= 4) {
+                // If we are already on ADDR5 (index 4), dump everything remaining here without any character limit
+                if (currentLineIdx === 4) {
                     addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
                     return;
                 }
@@ -378,8 +378,8 @@
                     addrLines[currentLineIdx] = testLine;
                 } else {
                     currentLineIdx++;
-                    if (currentLineIdx >= 4) {
-                        addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
+                    if (currentLineIdx === 4) {
+                        addrLines[4] = word;
                     } else {
                         addrLines[currentLineIdx] = word;
                     }
