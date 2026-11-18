@@ -63,7 +63,7 @@
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Lines 1-4 max 29 chars, Line 5 unlimited)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Lines 1-4 max 29 chars strict, Line 5 unlimited)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -263,7 +263,6 @@
             } else if (p === "2300") {
                 return "IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2300,PORT2=2350:PORT1=2300,PORT2=2350:PORT1=2300,PORT2=2350:PORT1=2300,PORT2=2350";
             } else {
-                // Default to 2450 pattern
                 return "IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400";
             }
         }
@@ -359,7 +358,7 @@
                 i++;
             }
 
-            // 2. ADDRESS LINES (ADDR1 to ADDR4 max 29 chars, ADDR5 takes ALL remaining text without limit)
+            // 2. ADDRESS LINES (ADDR1 to ADDR4 max 29 chars STRICT, ADDR5 takes all remaining without limit)
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
@@ -368,7 +367,8 @@
             let currentLineIdx = 0;
 
             allAddrWords.forEach(word => {
-                if (currentLineIdx === 4) {
+                // If ADDR5 (index 4), put everything remaining here without limit
+                if (currentLineIdx >= 4) {
                     addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
                     return;
                 }
@@ -378,9 +378,9 @@
                     addrLines[currentLineIdx] = testLine;
                 } else {
                     currentLineIdx++;
-                    if (currentLineIdx === 4) {
-                        addrLines[4] = word;
-                    } else if (currentLineIdx < 4) {
+                    if (currentLineIdx >= 4) {
+                        addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
+                    } else {
                         addrLines[currentLineIdx] = word;
                     }
                 }
