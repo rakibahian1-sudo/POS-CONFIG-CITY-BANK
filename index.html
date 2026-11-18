@@ -59,11 +59,11 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 24 & 28 chars, overflow to address)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Overflow ON to address safely)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Strict word-safe max 29 chars per line)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Strict 29 chars, starts on next line if DBA overflows)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -303,6 +303,53 @@
             return String(text).trim().split(/\s+/).filter(Boolean);
         }
 
+        // Word-safe line splitter
+        function splitIntoLines(text, maxChars, maxLines) {
+            if (!text) return [];
+            let words = getWords(text);
+            let lines = [];
+            let currentLine = "";
+            let wordIdx = 0;
+
+            for (let l = 0; l < maxLines; l++) {
+                if (wordIdx >= words.length) break;
+                
+                if (l === maxLines - 1) {
+                    let remainingWords = words.slice(wordIdx);
+                    let lineStr = remainingWords.join(" ");
+                    lineStr = lineStr.replace(/^,\s*/, "");
+                    lines.push(lineStr);
+                    wordIdx = words.length;
+                    break;
+                }
+
+                currentLine = "";
+                while (wordIdx < words.length) {
+                    let word = words[wordIdx];
+                    let test = currentLine ? currentLine + " " + word : word;
+                    if (test.length <= maxChars) {
+                        currentLine = test;
+                        wordIdx++;
+                    } else {
+                        if (!currentLine) { currentLine = word; wordIdx++; }
+                        break;
+                    }
+                }
+                
+                currentLine = currentLine.replace(/,\s*$/, "").trim();
+                lines.push(currentLine);
+            }
+
+            if (wordIdx < words.length) {
+                let lastIdx = lines.length - 1;
+                if (lastIdx < 0) lastIdx = 0;
+                let remainingStr = words.slice(wordIdx).join(" ").replace(/^,\s*/, "");
+                lines[lastIdx] = lines[lastIdx] ? lines[lastIdx] + " " + remainingStr : remainingStr;
+            }
+
+            return lines;
+        }
+
         function buildConfigText(row) {
             const tCol = document.getElementById('tidCol').value;
             const mCol = document.getElementById('midCol').value;
@@ -313,21 +360,22 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. MERCHANTNAME1 (max 24) & MERCHANTNAME2 (max 28) word-safe split
+            // 1. MERCHANT NAME: MERCHANTNAME1(24) and MERCHANTNAME2(28) (Max 2 lines for DBA name)
             const dbaRaw = (dCol ? row[dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
             let mLine1 = "", mLine2 = "";
-            let remainingDbaWords = [];
+            const dbaMaxChars = 21;
 
             let temp1 = "";
             let i = 0;
             while (i < dbaWords.length) {
                 let test = temp1 ? temp1 + " " + dbaWords[i] : dbaWords[i];
-                if (test.length <= 24) {
+                if (test.length <= dbaMaxChars) {
                     temp1 = test;
                     i++;
                 } else {
+                    if (!temp1) { temp1 = dbaWords[i]; i++; }
                     break;
                 }
             }
@@ -337,59 +385,69 @@
             let j = i;
             while (j < dbaWords.length) {
                 let test = temp2 ? temp2 + " " + dbaWords[j] : dbaWords[j];
+                // MERCHANTNAME2 has slightly higher capacity (~28 chars)
                 if (test.length <= 28) {
                     temp2 = test;
                     j++;
                 } else {
+                    if (!temp2) { temp2 = dbaWords[j]; j++; }
                     break;
                 }
             }
             mLine2 = temp2;
             i = j;
 
+            // Collect any remaining DBA overflow words
+            let remainingDbaWords = [];
             while (i < dbaWords.length) {
                 remainingDbaWords.push(dbaWords[i]);
                 i++;
             }
 
-            // 2. ADDRESS LINES (ADDR1, ADDR2, ADDR3, ADDR4 max 29 chars strict word-safe, ADDR5 unlimited)
+            // 2. ADDRESS LINES (ADDR1 to ADDR5):
+            // If DBA overflowed, those words go into ADDR1. Excel address starts FRESH from the NEXT line (ADDR2)!
             let addrLines = ["", "", "", "", ""];
-            let maxChars = 29;
-            let currentLineIdx = 0;
+            let currentAddrLineIdx = 0;
 
-            function appendWordsToAddr(words) {
-                words.forEach(word => {
-                    if (currentLineIdx >= 4) {
-                        addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
-                        return;
-                    }
-                    let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
-                    if (testLine.length <= maxChars) {
-                        addrLines[currentLineIdx] = testLine;
-                    } else {
-                        currentLineIdx++;
-                        if (currentLineIdx >= 4) {
-                            addrLines[4] = word;
-                        } else {
-                            addrLines[currentLineIdx] = word;
-                        }
-                    }
-                });
-            }
-
-            // If DBA has overflow words, place them first into address lines
             if (remainingDbaWords.length > 0) {
-                appendWordsToAddr(remainingDbaWords);
-                // Ensure Excel address starts from a fresh line after DBA overflow
-                if (addrLines[currentLineIdx] !== "") {
-                    currentLineIdx++;
-                }
+                addrLines[0] = remainingDbaWords.join(" ");
+                currentAddrLineIdx = 1; // Excel address starts from ADDR2 onwards
             }
 
-            // 3. FILL EXCEL ORIGINAL ADDRESS STARTING FROM THE NEXT LINE CLEANLY
             const rawAddr = aCol ? (row[aCol] || "") : "";
-            const addrWords = getWords(rawAddr);
-            appendWordsToAddr(addrWords);
+            const normalizedAddr = rawAddr.replace(/,\s*/g, ", ");
+            const addrWords = getWords(normalizedAddr);
+
+            let addrWordIdx = 0;
+            for (let l = currentAddrLineIdx; l < 5; l++) {
+                if (addrWordIdx >= addrWords.length) break;
+
+                if (l === 4) {
+                    let rem = addrWords.slice(addrWordIdx).join(" ");
+                    addrLines[4] = addrLines[4] ? addrLines[4] + " " + rem : rem;
+                    break;
+                }
+
+                let currentLine = "";
+                while (addrWordIdx < addrWords.length) {
+                    let word = addrWords[addrWordIdx];
+                    let test = currentLine ? currentLine + " " + word : word;
+                    if (test.length <= 29) {
+                        currentLine = test;
+                        addrWordIdx++;
+                    } else {
+                        if (!currentLine) { currentLine = word; addrWordIdx++; }
+                        break;
+                    }
+                }
+                currentLine = currentLine.replace(/,\s*$/, "").trim();
+                addrLines[l] = addrLines[l] ? addrLines[l] + " " + currentLine : currentLine;
+            }
+
+            if (addrWordIdx < addrWords.length) {
+                let rem = addrWords.slice(addrWordIdx).join(" ");
+                addrLines[4] = addrLines[4] ? addrLines[4] + " " + rem : rem;
+            }
 
             const a1 = addrLines[0] || "";
             const a2 = addrLines[1] || "";
