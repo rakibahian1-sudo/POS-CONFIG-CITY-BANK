@@ -63,7 +63,7 @@
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Word-safe, preserves format & commas)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (5 lines, max 29 chars each, word-safe)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -335,24 +335,20 @@
             const mid = formatMID(mCol ? row[mCol] : "");
 
             // 1. STRICT WORD-SAFE DBA NAME (Merchant Name 1 max 21 chars, Merchant Name 2 max 21 chars)
-            // Intelligent grouping so single letters like 'C' stay together with numbers like '4'
             const dbaRaw = (dCol ? row[dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
             let mLine1 = "", mLine2 = "";
             let remainingDbaWords = [];
 
-            // Fit into MERCHANTNAME1 (max 21 chars)
             let temp1 = "";
             let i = 0;
             while (i < dbaWords.length) {
                 let nextWord = dbaWords[i];
                 let test = temp1 ? temp1 + " " + nextWord : nextWord;
                 
-                // Prevent leaving a single letter in Name 1 if the very next word is a number (e.g. 'C 4')
                 if (nextWord.length === 1 && i + 1 < dbaWords.length && /^\d+$/.test(dbaWords[i+1])) {
                     if (test.length <= 21) {
-                        // Stop before taking just the single letter so it goes to Name 2 with the number
                         break;
                     }
                 }
@@ -366,7 +362,6 @@
             }
             mLine1 = temp1;
 
-            // Fit remaining into MERCHANTNAME2 (max 21 chars)
             let temp2 = "";
             while (i < dbaWords.length) {
                 let test = temp2 ? temp2 + " " + dbaWords[i] : dbaWords[i];
@@ -379,20 +374,19 @@
             }
             mLine2 = temp2;
 
-            // Extra DBA words that didn't fit in Merchant Name 2 will overflow to Address Line 1
             while (i < dbaWords.length) {
                 remainingDbaWords.push(dbaWords[i]);
                 i++;
             }
 
-            // 2. STRICT WORD-SAFE ADDRESS (Max 29 chars per line, preserving original formatting/commas)
+            // 2. STRICT WORD-SAFE ADDRESS (5 lines, Max 29 chars per line, preserving original formatting & commas)
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
             let addrLines = ["", "", "", "", ""];
             let currentLineIdx = 0;
 
-            // Fill Address Line 1 with DBA overflow words (Word Safe)
+            // Fill Address Line 1 with DBA overflow words (Word Safe, max 29 chars)
             remainingDbaWords.forEach(word => {
                 if (currentLineIdx >= 5) return;
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
@@ -411,7 +405,7 @@
                 currentLineIdx++;
             }
 
-            // Now put the actual Address words safely line by line (max 29 chars each, preserving original spacing/commas)
+            // Put the actual Address words safely line by line (max 29 chars each, word-safe, preserving commas/formatting)
             addrWords.forEach(word => {
                 if (currentLineIdx >= 5) return;
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
@@ -437,7 +431,7 @@
             const { emiFlag, tenureStr } = parseEmiDetails(row);
 
             return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
-TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(21)=${mLine1}:MERCHANTNAME2(21)=${mLine2}:2489:0000:0000:0000:0000:24896925
+TCT:ADDR1(29)=${a1}:ADDR2(29)=${a2}:ADDR3(29)=${a3}:ADDR4(29)=${a4}:ADDR5(29)=${a5}:MERCHANTNAME1(21)=${mLine1}:MERCHANTNAME2(21)=${mLine2}:2489:0000:0000:0000:0000:24896925
 SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
 SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
 IPBIN:${ipbinStr}
