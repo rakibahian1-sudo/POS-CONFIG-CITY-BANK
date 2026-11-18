@@ -59,7 +59,7 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars each, overflow to address)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars each, balanced split, overflow to address)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -313,56 +313,71 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. DBA NAME (max 21 chars each, word-safe)
+            // 1. DBA NAME BALANCED SPLIT (max 21 chars each, word-safe)
             const dbaRaw = (dCol ? row[dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
             let mLine1 = "", mLine2 = "";
             let remainingDbaWords = [];
 
-            let temp1 = "";
-            let i = 0;
-            while (i < dbaWords.length) {
-                let nextWord = dbaWords[i];
-                let test = temp1 ? temp1 + " " + nextWord : nextWord;
-                
-                if (nextWord.length === 1 && i + 1 < dbaWords.length && /^\d+$/.test(dbaWords[i+1])) {
-                    if (test.length <= 21) {
-                        break;
+            const fullDba = dbaWords.join(" ");
+            if (fullDba.length <= 21) {
+                mLine1 = fullDba;
+                mLine2 = "";
+            } else {
+                // Find balanced split for 2 lines <= 21 chars each
+                let validSplits = [];
+                for (let k = 1; k < dbaWords.length; k++) {
+                    let l1 = wordsSlice = dbaWords.slice(0, k).join(" ");
+                    let l2 = wordsSlice2 = dbaWords.slice(k).join(" ");
+                    if (l1.length <= 21 && l2.length <= 21) {
+                        validSplits.push({ l1, l2, diff: Math.abs(l1.length - l2.length) });
                     }
                 }
 
-                if (test.length <= 21) {
-                    temp1 = test;
-                    i++;
+                if (validSplits.length > 0) {
+                    validSplits.sort((a, b) => a.diff - b.diff);
+                    mLine1 = validSplits[0].l1;
+                    mLine2 = validSplits[0].l2;
                 } else {
-                    break;
+                    // Fallback to greedy if no clean split fits both
+                    let temp1 = "";
+                    let i = 0;
+                    while (i < dbaWords.length) {
+                        let nextWord = dbaWords[i];
+                        let test = temp1 ? temp1 + " " + nextWord : nextWord;
+                        if (test.length <= 21) {
+                            temp1 = test;
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                    mLine1 = temp1;
+                    let temp2 = "";
+                    while (i < dbaWords.length) {
+                        let test = temp2 ? temp2 + " " + dbaWords[i] : dbaWords[i];
+                        if (test.length <= 21) {
+                            temp2 = test;
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                    mLine2 = temp2;
+                    while (i < dbaWords.length) {
+                        remainingDbaWords.push(dbaWords[i]);
+                        i++;
+                    }
                 }
             }
-            mLine1 = temp1;
 
-            let temp2 = "";
-            while (i < dbaWords.length) {
-                let test = temp2 ? temp2 + " " + dbaWords[i] : dbaWords[i];
-                if (test.length <= 21) {
-                    temp2 = test;
-                    i++;
-                } else {
-                    break;
-                }
-            }
-            mLine2 = temp2;
-
-            while (i < dbaWords.length) {
-                remainingDbaWords.push(dbaWords[i]);
-                i++;
-            }
-
+            // 2. ADDRESS LINES & DBA OVERFLOW (Strict word-safe max 29 chars per line, ADDR5 unlimited)
             let addrLines = ["", "", "", "", ""];
             let maxChars = 29;
-
-            // 2. FILL DBA OVERFLOW WORDS FIRST INTO ADDRESS LINES
             let currentLineIdx = 0;
+
+            // If DBA overflowed beyond MERCHANTNAME1 & MERCHANTNAME2, put overflow into address lines first
             if (remainingDbaWords.length > 0) {
                 remainingDbaWords.forEach(word => {
                     if (currentLineIdx >= 4) {
@@ -381,14 +396,13 @@
                         }
                     }
                 });
-                // Once DBA overflow is placed, ensure Excel address starts from the NEXT clean line if current line has text, 
-                // OR if you want Excel address strictly on a brand new line after DBA overflow:
+                // Ensure Excel address starts from a fresh line after DBA overflow
                 if (addrLines[currentLineIdx] !== "") {
                     currentLineIdx++;
                 }
             }
 
-            // 3. FILL EXCEL ORIGINAL ADDRESS FROM THE NEXT LINE STARTING FRESH
+            // 3. FILL EXCEL ORIGINAL ADDRESS STARTING FROM THE NEXT LINE CLEANLY
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
