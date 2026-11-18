@@ -59,7 +59,7 @@
                     <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars, overflow goes to address)</label>
+                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Max 21 chars each, overflow to address)</label>
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -358,29 +358,50 @@
                 i++;
             }
 
-            // 2. ADDRESS LINES & DBA OVERFLOW MERGE (Strict word-safe max 29 chars per line, ADDR5 unlimited)
+            let addrLines = ["", "", "", "", ""];
+            let maxChars = 29;
+
+            // 2. FILL DBA OVERFLOW WORDS FIRST INTO ADDRESS LINES
+            let currentLineIdx = 0;
+            if (remainingDbaWords.length > 0) {
+                remainingDbaWords.forEach(word => {
+                    if (currentLineIdx >= 4) {
+                        addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
+                        return;
+                    }
+                    let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
+                    if (testLine.length <= maxChars) {
+                        addrLines[currentLineIdx] = testLine;
+                    } else {
+                        currentLineIdx++;
+                        if (currentLineIdx >= 4) {
+                            addrLines[4] = word;
+                        } else {
+                            addrLines[currentLineIdx] = word;
+                        }
+                    }
+                });
+                // Once DBA overflow is placed, ensure Excel address starts from the NEXT clean line if current line has text, 
+                // OR if you want Excel address strictly on a brand new line after DBA overflow:
+                if (addrLines[currentLineIdx] !== "") {
+                    currentLineIdx++;
+                }
+            }
+
+            // 3. FILL EXCEL ORIGINAL ADDRESS FROM THE NEXT LINE STARTING FRESH
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
-            // DBA overflow words will be placed first, followed by address words
-            let allAddrWords = [...remainingDbaWords, ...addrWords];
-            let addrLines = ["", "", "", "", ""];
-            let currentLineIdx = 0;
-            const maxChars = 29;
-
-            allAddrWords.forEach(word => {
-                // If we have reached ADDR5 (index 4), dump all remaining text here without any restriction
+            addrWords.forEach(word => {
                 if (currentLineIdx >= 4) {
                     addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
                     return;
                 }
 
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
-                
                 if (testLine.length <= maxChars) {
                     addrLines[currentLineIdx] = testLine;
                 } else {
-                    // Move to the next line safely
                     currentLineIdx++;
                     if (currentLineIdx >= 4) {
                         addrLines[4] = word;
