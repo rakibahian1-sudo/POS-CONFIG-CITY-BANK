@@ -30,7 +30,7 @@
     <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Panel: Upload & Column Mapping -->
         <div class="space-y-5">
-            <!-- 1. Excel Upload (Drag & Drop + Tap to browse) -->
+            <!-- 1. Excel Upload -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-xs font-bold tracking-wider text-slate-300">1. EXCEL FILE IMPORT</h2>
@@ -63,7 +63,7 @@
                     <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (5 lines, word-safe max 29 chars per line)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Lines 1-4 max 29 chars, Line 5 unlimited)</label>
                     <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
                 </div>
                 <div>
@@ -131,7 +131,6 @@
         let rawData = [];
         let activeRowIndex = 0;
 
-        // Setup Drag and Drop Event Listeners
         const dropZone = document.getElementById('dropZone');
         
         ['dragenter', 'dragover'].forEach(eventName => {
@@ -334,7 +333,7 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. STRICT WORD-SAFE DBA NAME (Merchant Name 1 max 21 chars, Merchant Name 2 max 21 chars)
+            // 1. DBA NAME (max 21 chars each)
             const dbaRaw = (dCol ? row[dCol] : "").trim();
             const dbaWords = getWords(dbaRaw);
             
@@ -379,38 +378,29 @@
                 i++;
             }
 
-            // 2. STRICT WORD-SAFE ADDRESS (5 lines, max 29 chars per line, original format/commas preserved)
+            // 2. ADDRESS LINES (ADDR1 to ADDR4 max 29 chars, ADDR5 takes ALL remaining text without limit)
             const rawAddr = aCol ? (row[aCol] || "") : "";
             const addrWords = getWords(rawAddr);
 
+            let allAddrWords = [...remainingDbaWords, ...addrWords];
             let addrLines = ["", "", "", "", ""];
             let currentLineIdx = 0;
 
-            remainingDbaWords.forEach(word => {
-                if (currentLineIdx >= 5) return;
-                let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
-                if (testLine.length <= 29) {
-                    addrLines[currentLineIdx] = testLine;
-                } else {
-                    currentLineIdx++;
-                    if (currentLineIdx < 5) {
-                        addrLines[currentLineIdx] = word;
-                    }
+            allAddrWords.forEach(word => {
+                // If we are on ADDR5 (index 4), put everything remaining here without splitting limit
+                if (currentLineIdx === 4) {
+                    addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
+                    return;
                 }
-            });
 
-            if (remainingDbaWords.length > 0 && addrLines[0] !== "") {
-                currentLineIdx++;
-            }
-
-            addrWords.forEach(word => {
-                if (currentLineIdx >= 5) return;
                 let testLine = addrLines[currentLineIdx] ? addrLines[currentLineIdx] + " " + word : word;
                 if (testLine.length <= 29) {
                     addrLines[currentLineIdx] = testLine;
                 } else {
                     currentLineIdx++;
-                    if (currentLineIdx < 5) {
+                    if (currentLineIdx === 4) {
+                        addrLines[4] = word;
+                    } else if (currentLineIdx < 4) {
                         addrLines[currentLineIdx] = word;
                     }
                 }
