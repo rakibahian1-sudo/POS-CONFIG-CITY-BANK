@@ -281,7 +281,17 @@
                 p1 = p || "2450"; p2 = "2400";
             }
 
-            const ip3_group = "IP1=192.168.94.251,IP2=192.168.94.252";
+            // Dynamic IP3 based on port (252 for 2450/2350, 251 for 2400/2300)
+            let ip3_ending = "251";
+            if (p === "2450" || p === "2350") {
+                ip3_ending = "252";
+            } else if (p === "2400" || p === "2300") {
+                ip3_ending = "251";
+            } else {
+                ip3_ending = "252"; // Default fallback
+            }
+
+            const ip3_group = `IP1=192.168.94.${ip3_ending},IP2=192.168.94.${ip3_ending}`;
             const ip4_group = "IP1=172.31.1.43,IP2=172.31.1.43";
 
             return `${ip1_group}:${ip2_group}:${ip3_group}:${ip4_group}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}:PORT1=${p1},PORT2=${p2}`;
@@ -387,7 +397,6 @@
             let currentLineIdx = 0;
 
             allAddrWords.forEach(word => {
-                // If we are on ADDR5 (index 4), put everything remaining here without splitting limit
                 if (currentLineIdx === 4) {
                     addrLines[4] = addrLines[4] ? addrLines[4] + " " + word : word;
                     return;
