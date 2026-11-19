@@ -303,53 +303,6 @@
             return String(text).trim().split(/\s+/).filter(Boolean);
         }
 
-        // Word-safe line splitter
-        function splitIntoLines(text, maxChars, maxLines) {
-            if (!text) return [];
-            let words = getWords(text);
-            let lines = [];
-            let currentLine = "";
-            let wordIdx = 0;
-
-            for (let l = 0; l < maxLines; l++) {
-                if (wordIdx >= words.length) break;
-                
-                if (l === maxLines - 1) {
-                    let remainingWords = words.slice(wordIdx);
-                    let lineStr = remainingWords.join(" ");
-                    lineStr = lineStr.replace(/^,\s*/, "");
-                    lines.push(lineStr);
-                    wordIdx = words.length;
-                    break;
-                }
-
-                currentLine = "";
-                while (wordIdx < words.length) {
-                    let word = words[wordIdx];
-                    let test = currentLine ? currentLine + " " + word : word;
-                    if (test.length <= maxChars) {
-                        currentLine = test;
-                        wordIdx++;
-                    } else {
-                        if (!currentLine) { currentLine = word; wordIdx++; }
-                        break;
-                    }
-                }
-                
-                currentLine = currentLine.replace(/,\s*$/, "").trim();
-                lines.push(currentLine);
-            }
-
-            if (wordIdx < words.length) {
-                let lastIdx = lines.length - 1;
-                if (lastIdx < 0) lastIdx = 0;
-                let remainingStr = words.slice(wordIdx).join(" ").replace(/^,\s*/, "");
-                lines[lastIdx] = lines[lastIdx] ? lines[lastIdx] + " " + remainingStr : remainingStr;
-            }
-
-            return lines;
-        }
-
         function buildConfigText(row) {
             const tCol = document.getElementById('tidCol').value;
             const mCol = document.getElementById('midCol').value;
@@ -360,48 +313,73 @@
             const tid = (tCol ? row[tCol] : "").trim() || "18037816";
             const mid = formatMID(mCol ? row[mCol] : "");
 
-            // 1. MERCHANT NAME: MERCHANTNAME1(24) and MERCHANTNAME2(28) (Max 2 lines for DBA name)
+            // 1. MERCHANT NAME: If DBA name has "C 1,2,3,4..." or "COUNTER 1,2,3,4...", send that part to MERCHANTNAME2
             const dbaRaw = (dCol ? row[dCol] : "").trim();
-            const dbaWords = getWords(dbaRaw);
-            
             let mLine1 = "", mLine2 = "";
+            let remainingDbaWords = [];
             const dbaMaxChars = 21;
 
-            let temp1 = "";
-            let i = 0;
-            while (i < dbaWords.length) {
-                let test = temp1 ? temp1 + " " + dbaWords[i] : dbaWords[i];
-                if (test.length <= dbaMaxChars) {
-                    temp1 = test;
+            const counterOrCMatch = dbaRaw.match(/\b((?:C|COUNTER)\s+\d+(?:\s*,\s*\d+)*)\b/i);
+
+            if (counterOrCMatch) {
+                const movedPart = counterOrCMatch[1].trim().replace(/\s+/g, " ");
+                const baseDba = dbaRaw.replace(counterOrCMatch[0], " ").replace(/\s+/g, " ").trim();
+                const baseWords = getWords(baseDba);
+
+                let temp1 = "";
+                let idx = 0;
+                while (idx < baseWords.length) {
+                    let test = temp1 ? temp1 + " " + baseWords[idx] : baseWords[idx];
+                    if (test.length <= dbaMaxChars) {
+                        temp1 = test;
+                        idx++;
+                    } else {
+                        if (!temp1) { temp1 = baseWords[idx]; idx++; }
+                        break;
+                    }
+                }
+                mLine1 = temp1;
+                mLine2 = movedPart;
+
+                while (idx < baseWords.length) {
+                    remainingDbaWords.push(baseWords[idx]);
+                    idx++;
+                }
+            } else {
+                const dbaWords = getWords(dbaRaw);
+                let temp1 = "";
+                let i = 0;
+                while (i < dbaWords.length) {
+                    let test = temp1 ? temp1 + " " + dbaWords[i] : dbaWords[i];
+                    if (test.length <= dbaMaxChars) {
+                        temp1 = test;
+                        i++;
+                    } else {
+                        if (!temp1) { temp1 = dbaWords[i]; i++; }
+                        break;
+                    }
+                }
+                mLine1 = temp1;
+
+                let temp2 = "";
+                let j = i;
+                while (j < dbaWords.length) {
+                    let test = temp2 ? temp2 + " " + dbaWords[j] : dbaWords[j];
+                    if (test.length <= 28) {
+                        temp2 = test;
+                        j++;
+                    } else {
+                        if (!temp2) { temp2 = dbaWords[j]; j++; }
+                        break;
+                    }
+                }
+                mLine2 = temp2;
+                i = j;
+
+                while (i < dbaWords.length) {
+                    remainingDbaWords.push(dbaWords[i]);
                     i++;
-                } else {
-                    if (!temp1) { temp1 = dbaWords[i]; i++; }
-                    break;
                 }
-            }
-            mLine1 = temp1;
-
-            let temp2 = "";
-            let j = i;
-            while (j < dbaWords.length) {
-                let test = temp2 ? temp2 + " " + dbaWords[j] : dbaWords[j];
-                // MERCHANTNAME2 has slightly higher capacity (~28 chars)
-                if (test.length <= 28) {
-                    temp2 = test;
-                    j++;
-                } else {
-                    if (!temp2) { temp2 = dbaWords[j]; j++; }
-                    break;
-                }
-            }
-            mLine2 = temp2;
-            i = j;
-
-            // Collect any remaining DBA overflow words
-            let remainingDbaWords = [];
-            while (i < dbaWords.length) {
-                remainingDbaWords.push(dbaWords[i]);
-                i++;
             }
 
             // 2. ADDRESS LINES (ADDR1 to ADDR5):
@@ -411,7 +389,7 @@
 
             if (remainingDbaWords.length > 0) {
                 addrLines[0] = remainingDbaWords.join(" ");
-                currentAddrLineIdx = 1; // Excel address starts from ADDR2 onwards
+                currentAddrLineIdx = 1;
             }
 
             const rawAddr = aCol ? (row[aCol] || "") : "";
