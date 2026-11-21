@@ -162,8 +162,8 @@ tbody tr:hover td{background:rgba(255,255,255,.05)}
       <div class="chips" id="chips"><span class="chip">Data table (0)</span></div>
       <button class="btn go" id="zipBtn">Download ZIP (.txt configs)</button>
     </div>
-    <div class="tw"><table><thead><tr><th>#</th><th>TID</th><th>MID</th><th>SIM</th><th>Port</th><th>Parfile</th><th>EMI &amp; tenure</th><th></th></tr></thead>
-    <tbody id="tbody"><tr><td colspan="8" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>TID</th><th>MID</th><th>SIM</th><th>Port</th><th>Parfile</th><th>EMI &amp; tenure</th><th>Standard features</th><th></th></tr></thead>
+    <tbody id="tbody"><tr><td colspan="9" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr></tbody></table></div>
   </section>
 
   <section class="card slipbox">
@@ -286,6 +286,19 @@ function layout(dba,addr){
   if(k<aw.length)L[4]=aw.slice(k).join(' ');
   return{m1,m2,L}}
 
+/* ---- Standard-parfile features, read from Special Functionality (applied on top of whatever Standard parfile is loaded) ---- */
+const FEATS=[
+ {lb:'Limit 24,999.99',re:/(RESTRICT|UNABLE)[^/]*?24,?999(\.99)?/,line:'LIMIT:',fn:l=>l.replace(/^(LIMIT:[^:]*:[^:]*:[^:]*:)99999999(?=:)/,(m,a)=>a+'2499999')},
+ {lb:'Sale Comp',re:/SALE\s*COMP/,line:'TXN:',on:['SALECOMP','SALECOMON','SALECOMPOFF']},
+ {lb:'Manual key',re:/MANUAL\s*KEY/,line:'PMTTYP:',on:['SALEMANUAL','PREAUTHMANUAL']},
+ {lb:'Pre-Auth',re:/PRE[\s-]?AUTH/,line:'TXN:',on:['PREAUTH']},
+ {lb:'Tip',re:/TIP\s*OPTION/,line:'TXN:',on:['TIPADJUST','TIPADJUSTOFF','TIPWITHSALE']},
+ {lb:'Customer copy',re:/CUSTOMER\s*COPY/,line:'SLIPPRINT:',on:['CUSTOMERCOPY']},
+ {lb:'Micro ATM',re:/MICRO\s*ATM/,line:'TXN:',on:['MICRO ATM']}];
+const setFlags=(l,ns)=>ns.reduce((a,n)=>a.replace(new RegExp(':'+n+'=\\d'),':'+n+'=1'),l);
+function featList(row,pk){if(pk!=='std'||!$('specCol').value)return[];const t=specText(row).replace(/\s+/g,' ');return FEATS.filter(f=>f.re.test(t))}
+function feat(lines,row,pk){const fl=featList(row,pk);if(!fl.length)return lines;
+  return lines.map(l=>{fl.forEach(f=>{if(l.startsWith(f.line))l=f.fn?f.fn(l):setFlags(l,f.on)});return l})}
 function build(row){
   const tid=val(row,'tidCol')||'18037816',mid=fmtMID(val(row,'midCol'));
   const{m1,m2,L}=layout(val(row,'dbaCol'),val(row,'addrCol'));
@@ -300,7 +313,7 @@ function build(row){
     if(l.startsWith('TXN:'))return l.replace(/:EMI=\d/,':EMI='+e.on);
     if(l.startsWith('LIMIT:')&&e.on)return l.replace(/:[\d,]+$/,':'+e.ten);
     return l});
-  return applyRules(out,row,{tid,mid,profile:pk,emi:e,sim:s.name,port,dba:val(row,'dbaCol'),addr:val(row,'addrCol')}).join('\r\n')}
+  return applyRules(feat(out,row,pk),row,{tid,mid,profile:pk,emi:e,sim:s.name,port,dba:val(row,'dbaCol'),addr:val(row,'addrCol')}).join('\r\n')}
 function applyRules(lines,row,ctx){
   for(const r of RULES){if(!r.on||r.kind!=='patch')continue;
     try{const f=r.fn||(r.fn=new Function('lines','row','ctx','idx',r.code));
@@ -312,12 +325,12 @@ function applyRules(lines,row,ctx){
 /* ---------- UI ---------- */
 function updateTable(){
   const tb=$('tbody');
-  if(!raw.length){tb.innerHTML='<tr><td colspan="8" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr>';$('chips').innerHTML='<span class="chip">Data table (0)</span>';paintStats(null);return}
+  if(!raw.length){tb.innerHTML='<tr><td colspan="9" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr>';$('chips').innerHTML='<span class="chip">Data table (0)</span>';paintStats(null);return}
   const cnt={std:0,onus:0,amex:0};
   tb.innerHTML=raw.map((r,i)=>{const p=profile(r),e=emi(r);cnt[p.key]++;
     return `<tr class="${i===act?'act':''}"><td>${i+1}</td><td class="mono">${esc(val(r,'tidCol'))}</td><td class="mono">${$('midCol').value?fmtMID(val(r,'midCol')):''}</td><td>${esc(sim(r).name)}</td><td>${esc(val(r,'portCol')||'2450')}</td>
     <td><span class="chip" style="--c:${PR[p.key].c}">${PR[p.key].n}${p.clash?' ⚠':''}</span></td>
-    <td>${e.on?`<span class="on">ON (${e.ten})</span>`:'<span class="off">OFF</span>'}</td><td><button class="btn g" data-v="${i}">View</button></td></tr>`}).join('');
+    <td>${e.on?`<span class="on">ON (${e.ten})</span>`:'<span class="off">OFF</span>'}</td><td>${featList(r,p.key).map(f=>`<span class="chip" style="--c:var(--gold)">${f.lb}</span>`).join(' ')||'<span class="off">-</span>'}</td><td><button class="btn g" data-v="${i}">View</button></td></tr>`}).join('');
   $('chips').innerHTML=`<span class="chip">${raw.length} terminals</span>`+Object.keys(PR).filter(k=>cnt[k]).map(k=>`<span class="chip" style="--c:${PR[k].c}">${cnt[k]} ${PR[k].n}</span>`).join('');
   paintStats(cnt);preview(Math.min(act,raw.length-1));
 }
