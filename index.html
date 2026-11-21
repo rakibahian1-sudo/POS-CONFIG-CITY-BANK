@@ -1,639 +1,475 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS Terminal Config Generator - City Bank</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS for Excel Parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- JSZip for ZIP file generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script id="boot">(function(){try{if(/[?&]safe/.test(location.search))return;var V=1,o=JSON.parse(localStorage.getItem('pos_src_v1')||'null');if(o&&o.v>V){document.open();document.write(o.src);document.close()}}catch(e){}})()</script>
+<script>window.__errs=[];addEventListener('error',function(e){__errs.push(e.message)})</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23ffb23f'/%3E%3Crect x='17' y='11' width='27' height='42' rx='6' fill='%23071a45'/%3E%3Crect x='21' y='15' width='19' height='11' rx='2' fill='%234de3d0'/%3E%3C/svg%3E">
+<title>POS Terminal Config Generator - City Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#071633;--card:rgba(15,38,88,.74);--card2:#0c2254;--deep:#081a42;--line:#27498f;--ink:#e9f1ff;--mute:#8fa9d6;--gold:#ffc247;--aqua:#4de3d0;--teal:#2fd4c0;--violet:#ab94ff;--blue:#5db7ff;--paper:#f6f1e3}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:14px/1.5 'IBM Plex Sans',system-ui,sans-serif;min-height:100vh;background:radial-gradient(1100px 520px at 88% -8%,#1c4cae 0,transparent 62%),radial-gradient(800px 500px at -10% 40%,#10337a 0,transparent 60%),linear-gradient(180deg,#071633,#061229) fixed}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px) 0 0/22px 22px;pointer-events:none}
+h1,h2,h3,.disp{font-family:'Bricolage Grotesque','IBM Plex Sans',sans-serif;margin:0}
+button,select,textarea,input{font:inherit;color:inherit}
+header{padding:28px 24px 34px}
+.wrap{max-width:1280px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:16px}
+.logo{width:62px;height:62px;filter:drop-shadow(0 8px 18px rgba(255,170,60,.35))}
+header h1{font-size:clamp(22px,3.2vw,36px);font-weight:800;letter-spacing:-.015em}
+header p{margin:2px 0 0;color:var(--mute);font-size:13px}
+.bank{margin-left:auto;border:1px solid var(--line);border-radius:99px;padding:4px 14px;font-size:12px;color:#cfe0ff;background:rgba(255,255,255,.04)}
+main{max-width:1280px;margin:0 auto 40px;padding:0 24px;display:grid;grid-template-columns:360px 1fr;gap:22px;position:relative}
+@media(max-width:1000px){main{grid-template-columns:1fr;padding:0 14px}header{padding:20px 16px 24px}.bank{display:none}}
+.card{background:var(--card);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 40px -22px rgba(0,0,0,.7)}
+.card h2{font-size:17px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.col{display:grid;gap:22px;align-content:start;min-width:0}
+.drop{border:2px dashed #3d64b3;border-radius:14px;padding:24px 14px;text-align:center;cursor:pointer;position:relative;transition:.2s;background:rgba(5,18,48,.5)}
+.drop:hover,.drop.over{border-color:var(--aqua);background:rgba(77,227,208,.08)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop b{display:block;font-family:'Bricolage Grotesque';font-size:16px}
+.drop span{font-size:12px;color:var(--mute)}
+.tag{font-size:11.5px;color:var(--mute);font-weight:400}
+details summary{cursor:pointer;font:700 17px 'Bricolage Grotesque';list-style:none;display:flex;justify-content:space-between}
+details summary::after{content:"+";color:var(--mute)}details[open] summary::after{content:"–"}
+.f{margin-top:11px}.f label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
+select,input[type=text],input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--deep)}
+select:focus,button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+.lib{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:760px){.lib{grid-template-columns:1fr}}
+.cart{background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:14px 14px 12px 22px;position:relative;overflow:hidden}
+.cart::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--c)}
+.cart h3{font-size:16px;color:var(--c);font-weight:800}
+.cart .rule{font-size:12px;color:var(--mute);min-height:36px;margin:2px 0 8px}
+.cart .file{font:12px 'IBM Plex Mono',monospace;word-break:break-all;background:rgba(255,255,255,.06);border-radius:8px;padding:6px 8px}
+.cart .row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;font-size:12px;color:var(--mute)}
+.btn{border:0;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;transition:.15s}
+.btn.p{background:var(--aqua);color:#032028}.btn.p:hover{filter:brightness(1.1)}
+.btn.g{background:rgba(255,255,255,.09)}.btn.g:hover{background:rgba(255,255,255,.17)}
+.btn.go{background:var(--gold);color:#1d1500}.btn.go:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:wait}
+.link{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;padding:0;font-size:12px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:12px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border-radius:99px;padding:3px 11px;font-size:12px;font-weight:600;color:var(--c,#b7c9ea);background:color-mix(in srgb,var(--c,#8fa9d6) 16%,transparent);border:1px solid color-mix(in srgb,var(--c,#8fa9d6) 40%,transparent)}
+.tw{overflow:auto;max-height:330px;border:1px solid var(--line);border-radius:12px;background:var(--deep)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+th{position:sticky;top:0;background:#12306e;text-align:left;padding:9px 11px;font-weight:600;color:var(--mute)}
+td{padding:8px 11px;border-top:1px solid #163a7a}
+tr.act td{background:rgba(255,194,71,.14)}
+tbody tr:hover td{background:rgba(255,255,255,.05)}
+.mono{font-family:'IBM Plex Mono',monospace}
+.on{color:var(--aqua);font-weight:600}.off{color:#6f8bbd}
+.slipbox{padding:6px 4px 24px}
+.slip{background:var(--paper);color:#2b2a24;border-radius:6px 6px 0 0;padding:16px 18px 10px;position:relative;box-shadow:0 18px 28px -16px rgba(0,0,0,.8)}
+.slip::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:11px;background:linear-gradient(135deg,var(--paper) 50%,transparent 50%) 0 0/14px 11px,linear-gradient(225deg,var(--paper) 50%,transparent 50%) 0 0/14px 11px}
+.slip .hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;border-bottom:2px dashed #cbbf9c;padding-bottom:10px}
+.slip .tag{color:#7a7154}
+.slip textarea{width:100%;height:230px;border:0;background:transparent;resize:vertical;font:12px/1.55 'IBM Plex Mono',monospace;color:#2b2a24;outline:none}
+.slip .btn.g{background:#e6dfc8;color:#2b2a24}
+#toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,30px);background:var(--gold);color:#1d1500;font-weight:600;padding:10px 18px;border-radius:12px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+#toast.s{opacity:1;transform:translate(-50%,0)}
+.empty{text-align:center;color:var(--mute);padding:30px}
+.ai{border:1.5px solid transparent;background:linear-gradient(var(--card2),var(--card2)) padding-box,linear-gradient(135deg,var(--aqua),var(--violet) 55%,var(--gold)) border-box}
+.ai h2 .spark{display:inline-block;width:22px;height:22px;vertical-align:-4px;margin-right:6px}
+.msgs{max-height:340px;min-height:120px;overflow:auto;display:grid;gap:9px;margin:4px 0 10px;align-content:start;padding-right:2px}
+.m{padding:9px 12px;border-radius:14px;font-size:13px;max-width:94%;white-space:pre-wrap;word-break:break-word}
+.m.u{justify-self:end;background:var(--gold);color:#1d1500;border-bottom-right-radius:4px}
+.m.a{background:rgba(255,255,255,.08);border-bottom-left-radius:4px}
+.think{color:var(--aqua);animation:pu 1.2s infinite}@keyframes pu{50%{opacity:.35}}
+.ok{color:var(--aqua);font-weight:600;margin-top:6px;display:block}
+.diff{font:11px/1.45 'IBM Plex Mono',monospace;background:#051029;border-radius:8px;padding:6px 8px;margin-top:6px;overflow-x:auto;white-space:pre}
+.diff .d{color:#ff9b9b}.diff .n{color:#7ff0b0}
+.inrow{display:flex;gap:8px;align-items:flex-end}
+.inrow textarea{flex:1;resize:none;height:62px;border:1px solid var(--line);border-radius:12px;background:var(--deep);padding:9px 11px}
+.rule{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:4px 0;border-top:1px solid #163a7a}
+.rule label{cursor:pointer}
+#rules{margin-top:10px}
+.setn{font-size:11.5px;color:var(--mute);margin:8px 0 0}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.stats{max-width:1280px;margin:0 auto 22px;padding:0 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr);padding:0 14px}}
+.tile{position:relative;overflow:hidden;border-radius:18px;padding:16px 18px;background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.02));border:1px solid var(--line)}
+.tile::after{content:"";position:absolute;right:-28px;top:-28px;width:120px;height:120px;border-radius:50%;background:var(--c);opacity:.25;filter:blur(20px)}
+.tile b{font:800 36px/1 'Bricolage Grotesque',sans-serif;color:var(--c);position:relative;z-index:1}
+.tile span{display:block;font-size:12.5px;color:var(--mute);margin-top:6px;position:relative;z-index:1}
+.pills{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pills .bank{margin:0}.bank i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--aqua);margin-right:7px;box-shadow:0 0 8px var(--aqua)}.bank i.x{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.cart{transition:.2s}.cart:hover{transform:translateY(-3px);box-shadow:0 16px 30px -16px var(--c)}
+.btn.go{box-shadow:0 8px 22px -8px rgba(255,194,71,.7)}
+.ai{background:linear-gradient(var(--card2),var(--card2)) padding-box,linear-gradient(120deg,var(--aqua),var(--violet),var(--gold),var(--aqua)) border-box;background-size:auto,300% 300%;animation:flow 9s linear infinite}
+@keyframes flow{to{background-position:0 0,300% 0}}
+.msgs{max-height:400px}
+.sug{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.sug button{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:99px;padding:4px 11px;font-size:11.5px;color:var(--mute);cursor:pointer;transition:.15s}
+.sug button:hover{color:var(--ink);border-color:var(--aqua)}
+#ups{margin-top:10px}.upb{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.upb .btn{padding:5px 10px;font-size:12px}
+.slip .bc{height:28px;margin:10px 0 2px;border-radius:2px;opacity:.8;background:repeating-linear-gradient(90deg,#2b2a24 0 2px,transparent 2px 4px,#2b2a24 4px 5px,transparent 5px 9px,#2b2a24 9px 12px,transparent 12px 14px)}
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
-    <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-md">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600/20 border border-blue-500/40 p-2 rounded-lg text-blue-400 font-bold">POS</div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-lg md:text-xl font-bold tracking-wider">POS TERMINAL CONFIG GENERATOR</h1>
-                        <span class="text-[10px] bg-teal-950 text-teal-400 border border-teal-800 px-2 py-0.5 rounded-full font-semibold">CITY BANK</span>
-                    </div>
-                    <p class="text-xs text-slate-400">Parse Excel data into HDT, TCT & parameter batch configs per TID</p>
-                </div>
-            </div>
-        </div>
-    </header>
+<body>
+<header><div class="wrap brand"><svg class="logo" viewBox="0 0 64 64" aria-label="POS logo"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd878"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="18" fill="url(#lg)"/><rect x="17" y="11" width="27" height="42" rx="6" fill="#071a45"/><rect x="21" y="15" width="19" height="11" rx="2.5" fill="#4de3d0"/><path d="M25 21l3.5 3 6-6" fill="none" stroke="#071a45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><g fill="#8fa9d6"><circle cx="25" cy="33" r="2.1"/><circle cx="30.5" cy="33" r="2.1"/><circle cx="36" cy="33" r="2.1"/><circle cx="25" cy="39" r="2.1"/><circle cx="30.5" cy="39" r="2.1"/><circle cx="36" cy="39" r="2.1"/></g><rect x="22" y="44.5" width="17" height="3.5" rx="1.7" fill="#ffc247"/><g fill="none" stroke="#071a45" stroke-width="2.6" stroke-linecap="round"><path d="M48 21a7 7 0 0 1 0 10"/><path d="M53 17.5a12 12 0 0 1 0 17"/></g></svg><div><h1>POS Terminal Config Generator</h1><p>Excel row → HDT, TCT &amp; parfile per TID, with the right parfile picked automatically</p></div><div class="pills"><span class="bank">City Bank</span><span class="bank" id="aiPill"></span><span class="bank" id="verPill"></span></div></div></header>
+<section class="stats" id="stats"></section>
 
-    <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left Panel: Upload & Column Mapping -->
-        <div class="space-y-5">
-            <!-- 1. Excel Upload -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-xs font-bold tracking-wider text-slate-300">1. EXCEL FILE IMPORT</h2>
-                    <span id="fileBadge" class="text-[11px] text-slate-500">No file loaded</span>
-                </div>
-                <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-6 text-center cursor-pointer relative transition bg-slate-950/40">
-                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event)">
-                    <div class="pointer-events-none space-y-1">
-                        <svg class="w-8 h-8 mx-auto text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                        <p id="fileStatus" class="text-xs text-slate-300 font-medium">Drag & drop Excel file here or Tap to browse</p>
-                        <p class="text-[11px] text-slate-500">Supports .xlsx, .xls, .csv</p>
-                    </div>
-                </div>
-            </div>
+<main>
+<div class="col">
+  <section class="card">
+    <h2>Excel import <span id="fileBadge" class="tag">No file loaded</span></h2>
+    <div class="drop" id="dropZone">
+      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+      <b id="fileStatus">Drop Excel here or tap to browse</b><span>.xlsx · .xls · .csv</span>
+    </div>
+  </section>
+  <section class="card ai">
+    <h2><span><svg class="spark" viewBox="0 0 24 24"><path d="M12 2l2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7z" fill="#4de3d0"/><path d="M19 15l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z" fill="#ffc247"/></svg>Ask Claude</span><span class="tag">Enter = send</span></h2>
+    <div class="msgs" id="msgs"></div>
+    <div class="inrow"><textarea id="aiIn" placeholder="Problem ta likho, jemon: ON US likha thakleo Standard hocche, thik kore dao"></textarea><button class="btn p" id="aiBtn">Send</button></div>
+    <div class="sug"><button>Table e notun column add koro</button><button>Ei row er output e vul ache?</button><button>ZIP e profile onujayi folder koro</button></div>
+    <div id="rules"></div><div id="ups"></div>
+    <details id="aiSet" style="margin-top:12px"><summary style="font-size:13px">API key &amp; model</summary>
+      <div class="f"><label>Anthropic API key</label><input type="password" id="aiKey" placeholder="sk-ant-..." autocomplete="off"></div>
+      <div class="f"><label>Model</label><input type="text" id="aiModel" value="claude-sonnet-5-5"></div>
+      <button class="btn g" id="aiSave" style="margin-top:10px">Save</button>
+      <p class="setn">Key stays only in this browser. When you ask, the column names, a few sample rows and the selected row's output are sent to the Anthropic API.</p></details>
+  </section>
+  <section class="card"><details>
+    <summary>Column mapping</summary>
+    <div class="f"><label>TID *</label><select id="tidCol"></select></div>
+    <div class="f"><label>MID * (padded to 15 digits)</label><select id="midCol"></select></div>
+    <div class="f"><label>DBA Name * (overflow goes to address)</label><select id="dbaCol"></select></div>
+    <div class="f"><label>Address * (29 chars per line)</label><select id="addrCol"></select></div>
+    <div class="f"><label>SIM Carrier (GP if blank)</label><select id="simCol"></select></div>
+    <div class="f"><label>Port Number *</label><select id="portCol"></select></div>
+    <div class="f"><label>Special Functionality * (picks the parfile + EMI)</label><select id="specCol"></select></div>
+  </details></section>
+</div>
 
-            <!-- 2. Column Mapping -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                <h2 class="text-xs font-bold tracking-wider text-slate-300">2. COLUMN MAPPING</h2>
-                
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">TID Column *</label>
-                    <select id="tidCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">MID Column * (Auto padded to 15 digits)</label>
-                    <select id="midCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">DBA Name Column * (Overflow ON to address safely)</label>
-                    <select id="dbaCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Address Column * (Strict 29 chars, starts on next line if DBA overflows)</label>
-                    <select id="addrCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">SIM Carrier Column (Default: GP if blank)</label>
-                    <select id="simCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Port Number Column *</label>
-                    <select id="portCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Special Functionality / EMI Column *</label>
-                    <select id="specCol" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs" onchange="updateTable()"></select>
-                </div>
-            </div>
-        </div>
+<div class="col">
+  <section class="card" id="libCard">
+    <h2>Parfile library <span class="tag">Drop new parfiles anywhere here, the slot is chosen from the file name</span></h2>
+    <div class="lib" id="lib"></div>
+  </section>
 
-        <!-- Right Panel: Controls, Data Table & Output -->
-        <div class="lg:col-span-2 space-y-5">
-            <!-- Action Bar -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
-                <span id="rowCount" class="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-semibold">Data Table (0)</span>
-                <button onclick="downloadZip()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-emerald-950">
-                    Download ZIP (.txt configs)
-                </button>
-            </div>
+  <section class="card">
+    <div class="bar">
+      <div class="chips" id="chips"><span class="chip">Data table (0)</span></div>
+      <button class="btn go" id="zipBtn">Download ZIP (.txt configs)</button>
+    </div>
+    <div class="tw"><table><thead><tr><th>#</th><th>TID</th><th>MID</th><th>SIM</th><th>Port</th><th>Parfile</th><th>EMI &amp; tenure</th><th></th></tr></thead>
+    <tbody id="tbody"><tr><td colspan="8" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr></tbody></table></div>
+  </section>
 
-            <!-- Data Preview Table -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="overflow-x-auto max-h-[300px] border border-slate-800 rounded-lg">
-                    <table id="dataTable" class="w-full text-left text-xs whitespace-nowrap">
-                        <thead class="bg-slate-800 text-slate-300 sticky top-0">
-                            <tr>
-                                <th class="p-2.5">#</th>
-                                <th class="p-2.5">TID</th>
-                                <th class="p-2.5">MID (15-Digit)</th>
-                                <th class="p-2.5">SIM</th>
-                                <th class="p-2.5">PORT</th>
-                                <th class="p-2.5">EMI & TENURE</th>
-                                <th class="p-2.5">PREVIEW</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-800 text-slate-300">
-                            <tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above or tap to select.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+  <section class="card slipbox">
+    <div class="slip">
+      <div class="hd"><h3>Config preview <span id="pvTitle" class="tag"></span></h3>
+        <div><button class="btn g" id="copyBtn">Copy</button> <button class="btn p" id="saveBtn">Save .txt</button></div></div>
+      <textarea id="cfg" spellcheck="false" placeholder="Click View on any row to see its generated parfile. You can edit it before saving."></textarea>
+      <div class="bc"></div>
+    </div>
+  </section>
+</div>
+</main>
+<div id="toast"></div>
 
-            <!-- Live Config Output Preview -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xs font-bold tracking-wider text-slate-300">CONFIG OUTPUT PREVIEW <span id="previewTitle" class="text-blue-400 font-normal"></span></h3>
-                    <div class="flex gap-2">
-                        <button onclick="copyPreview()" class="text-[11px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-slate-300">Copy Text</button>
-                        <button onclick="saveCurrentPreview()" class="text-[11px] bg-blue-600 hover:bg-blue-500 px-2.5 py-1 rounded text-white font-semibold">Save File (.txt)</button>
-                    </div>
-                </div>
-                <textarea id="configPreview" rows="10" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-[11px] text-emerald-400 focus:outline-none" placeholder="Click 'View' on any row above to inspect and edit its generated .txt content..."></textarea>
-            </div>
-        </div>
-    </main>
+<script>
+const DEFAULTS={"std": {"name": "Standard Parfile (18037915).txt", "gz": "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"}, "onus": {"name": "ONUS Parfile For Version 43.20260616 (edit 13-10-2026) Latest.txt", "gz": "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"}, "amex": {"name": "AMEX Parfile For Version 43.20260616175039 (edit 13-10-2026) Latest.txt", "gz": "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"}};
+const PR={
+  std:{n:'Standard',c:'var(--teal)',rule:'Used for everything else: all card schemes enabled.'},
+  onus:{n:'ON-US',c:'var(--violet)',rule:'Special Functionality says ON-US / ON US CARD ONLY.'},
+  amex:{n:'AMEX only',c:'var(--blue)',rule:'Special Functionality says ONLY AMEX.'}};
+const ALLT=[3,6,9,12,18,24,30,36];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.__ready=false;
+const BOOT=(()=>{try{return JSON.parse(localStorage.getItem('pos_src_v1')||'null')}catch(e){return null}})();
+const CURV=+((document.getElementById('boot').textContent.match(/V=(\d+)/)||[0,1])[1]);
+const LIVE=!!(BOOT&&BOOT.v===CURV);
+let SRC=LIVE?BOOT.src:'<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+let P={},raw=[],act=0,HD=[];
 
-    <script>
-        let rawData = [];
-        let activeRowIndex = 0;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('s');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('s'),2600)}
+async function gunzip(b){const bin=Uint8Array.from(atob(b),c=>c.charCodeAt(0));return new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text()}
+const norm=t=>t.split(/\r?\n/).map(l=>l.trimEnd()).filter(Boolean).join('\n');
 
-        const dropZone = document.getElementById('dropZone');
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dropZone.classList.add('border-blue-500', 'bg-blue-500/10');
-            }, false);
-        });
+/* ---------- Parfile library ---------- */
+function saveLS(){try{const o={};for(const k in P)if(P[k].custom)o[k]={name:P[k].name,text:P[k].text,at:P[k].at};localStorage.setItem('pos_parfiles_v1',JSON.stringify(o))}catch(e){}}
+function guess(n){return /amex/i.test(n)?'amex':/\bon[\s\-_]?us\b|onus/i.test(n)?'onus':'std'}
+function ver(n){const m=n.match(/Version\s*([\d.]+)/i);return m?'v'+m[1]:''}
+function renderLib(){
+  $('lib').innerHTML=Object.keys(PR).map(k=>{const p=P[k]||{name:'missing',text:''};
+    return `<div class="cart" style="--c:${PR[k].c}"><h3>${PR[k].n}</h3><div class="rule">${PR[k].rule}</div>
+    <div class="file">${esc(p.name)}</div>
+    <div class="row"><span>${p.custom?'Default · uploaded '+esc(p.at||''):'Default · original'} ${ver(p.name)}</span>
+    <span><button class="link" data-reset="${k}" ${p.custom?'':'hidden'}>restore original</button> <button class="btn g" data-pick="${k}">Replace</button></span></div></div>`}).join('');
+}
+function loadPar(file,key){
+  const r=new FileReader();
+  r.onload=()=>{const t=norm(String(r.result));
+    if(!/^HDT:/.test(t)||!/\nTCT:/.test(t)||!/\nCDT0:/.test(t)){toast('"'+file.name+'" does not look like a parfile');return}
+    const k=key||guess(file.name);
+    P[k]={name:file.name,text:t,custom:true,at:new Date().toLocaleDateString('en-GB')};
+    saveLS();renderLib();updateTable();toast(PR[k].n+' parfile is now the default');};
+  r.readAsText(file);
+}
+function pick(k){const i=document.createElement('input');i.type='file';i.accept='.txt';i.onchange=()=>i.files[0]&&loadPar(i.files[0],k);i.click()}
+$('lib').addEventListener('click',e=>{const a=e.target.closest('[data-pick]'),b=e.target.closest('[data-reset]');
+  if(a)pick(a.dataset.pick);
+  if(b){P[b.dataset.reset]={...DEF[b.dataset.reset]};saveLS();renderLib();updateTable();toast('Original parfile restored')}});
+const lc=$('libCard');
+['dragenter','dragover'].forEach(n=>lc.addEventListener(n,e=>{e.preventDefault();lc.style.outline='2px dashed var(--violet)'}));
+['dragleave','drop'].forEach(n=>lc.addEventListener(n,e=>{e.preventDefault();lc.style.outline=''}));
+lc.addEventListener('drop',e=>[...e.dataTransfer.files].forEach(f=>loadPar(f)));
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
-            }, false);
-        });
+/* ---------- Excel ---------- */
+const dz=$('dropZone');
+['dragenter','dragover'].forEach(n=>dz.addEventListener(n,e=>{e.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(n=>dz.addEventListener(n,e=>{e.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',e=>e.dataTransfer.files[0]&&processFile(e.dataTransfer.files[0]));
+$('excelFile').addEventListener('change',e=>e.target.files[0]&&processFile(e.target.files[0]));
+function processFile(file){
+  $('fileStatus').textContent=file.name;$('fileBadge').textContent='Loaded';
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+    let hi=0;
+    for(let i=0;i<Math.min(rows.length,10);i++){const s=rows[i].map(c=>String(c).trim().toUpperCase());if(s.includes('TID')||s.includes('MID')||s.includes('SPECIAL FUNCTIONALITY')){hi=i;break}}
+    const hd=rows[hi].map(h=>String(h).trim());
+    raw=rows.slice(hi+1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>{const o={};hd.forEach((h,i)=>{if(h)o[h]=String(r[i]!==undefined?r[i]:'').trim()});return o});
+    HD=hd.filter(Boolean);populate(HD);act=0;updateTable();
+  };
+  rd.readAsArrayBuffer(file);
+}
+function populate(hd){
+  const map={tidCol:['TID'],midCol:['MID'],dbaCol:['DBA NAME','DBA'],addrCol:['ADDRESS'],simCol:['SIM CARRIER','SIM'],portCol:['PORT NUMBER','PORT'],specCol:['SPECIAL FUNCTIONALITY','EMI','FUNCTIONALITY']};
+  for(const id in map){const s=$(id);s.innerHTML='<option value="">-- Select --</option>'+hd.map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join('');
+    const m=hd.find(h=>map[id].includes(h.toUpperCase()));if(m)s.value=m;s.onchange=updateTable}
+}
 
-        dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files && files.length > 0) {
-                document.getElementById('excelFile').files = files;
-                processFile(files[0]);
-            }
-        }, false);
+/* ---------- Row logic ---------- */
+const val=(row,id)=>{const c=$(id).value;return c?String(row[c]||'').trim():''};
+const fmtMID=m=>{const c=String(m||'').replace(/\D/g,'');return c?c.padStart(15,'0'):'000000000000000'};
+function sim(row){const v=val(row,'simCol').toUpperCase();let gp=0,robi=0,bl=0,o=0;
+  if(v.includes('ROBI'))robi=1;else if(v.includes('BL')||v.includes('BANGLALINK'))bl=1;else if(v.includes('GP')||v.includes('GRAMEEN')||v==='')gp=1;else o=1;
+  return{gp,robi,bl,o,name:v||'GP (default)'}}
+function ipbin(port){const p=String(port).trim(),fwd=p==='2400'||p==='2300';
+  const pr=p==='2400'?[2400,2450]:p==='2300'?[2300,2350]:p==='2350'?[2350,2300]:[2450,2400];
+  const s=[['192.168.95.7','192.168.95.8'],['192.168.95.102','192.168.95.103'],['192.168.94.251','192.168.94.252']].map(([a,b])=>fwd?`IP1=${a},IP2=${b}`:`IP1=${b},IP2=${a}`);
+  s.push('IP1=172.31.1.43,IP2=172.31.1.43');const t=`PORT1=${pr[0]},PORT2=${pr[1]}`;return s.concat([t,t,t,t]).join(':')}
+function specText(row){return($('specCol').value?String(row[$('specCol').value]||''):Object.values(row).join(' ')).toUpperCase()}
+function emi(row){const t=specText(row);if(!t.includes('ENABLE EMI'))return{on:0,ten:null};
+  let ten=ALLT.join(',');const r=t.match(/(\d+)\s*-\s*(\d+)/);
+  if(r){const f=ALLT.filter(m=>m>=+r[1]&&m<=+r[2]);if(f.length)ten=f.join(',')}
+  else{const f=ALLT.filter(m=>new RegExp(`\\b${m}\\b`).test(t));if(f.length)ten=f.join(',')}
+  return{on:1,ten}}
+function profile(row){const t=specText(row);
+  const amex=/ONLY\W*AMEX|AMEX\W*(CARD\W*)?ONLY|AMEX\s+CARD/.test(t),onus=/\bON[\s\-_]?US\b/.test(t);
+  let key=amex?'amex':onus?'onus':'std';
+  for(const r of RULES){if(r.on&&r.kind==='detect'){try{const f=r.fn||(r.fn=new Function('row','text','base',r.code));const o=f(row,t,key);if(PR[o])key=o}catch(e){r.err=e.message}}}
+  return{key,clash:amex&&onus}}
+const W=t=>String(t||'').trim().split(/\s+/).filter(Boolean);
+function fit(w,i,max){let s='';while(i<w.length){const t=s?s+' '+w[i]:w[i];if(t.length<=max){s=t;i++}else{if(!s){s=w[i];i++}break}}return[s,i]}
+function layout(dba,addr){
+  let m1,m2,rest=[],i;const m=dba.match(/\b((?:C|COUNTER)\s+\d+(?:\s*,\s*\d+)*)\b/i);
+  if(m){const w=W(dba.replace(m[0],' '));[m1,i]=fit(w,0,21);m2=m[1].trim().replace(/\s+/g,' ');rest=w.slice(i)}
+  else{const w=W(dba);[m1,i]=fit(w,0,21);[m2,i]=fit(w,i,28);rest=w.slice(i)}
+  const L=['','','','',''];let l=0;if(rest.length){L[0]=rest.join(' ');l=1}
+  const aw=W(String(addr||'').replace(/,\s*/g,', '));let k=0;
+  for(;l<4&&k<aw.length;l++){let s;[s,k]=fit(aw,k,29);L[l]=s.replace(/,\s*$/,'').trim()}
+  if(k<aw.length)L[4]=aw.slice(k).join(' ');
+  return{m1,m2,L}}
 
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) {
-                processFile(file);
-            }
-        }
+function build(row){
+  const tid=val(row,'tidCol')||'18037816',mid=fmtMID(val(row,'midCol'));
+  const{m1,m2,L}=layout(val(row,'dbaCol'),val(row,'addrCol'));
+  const s=sim(row),e=emi(row),port=val(row,'portCol')||'2450',pk=profile(row).key;
+  const tpl=(P[pk]||P.std).text.split('\n');
+  const out=tpl.map(l=>{
+    if(l.startsWith('HDT:'))return l.replace(/TID=[^:]*/,()=>'TID='+tid).replace(/MID=[^:]*/,()=>'MID='+mid);
+    if(l.startsWith('TCT:')){let o=l;L.forEach((a,i)=>o=o.replace(new RegExp(`ADDR${i+1}\\(36\\)=[^:]*`),()=>`ADDR${i+1}(36)=${a}`));
+      return o.replace(/MERCHANTNAME1\(24\)=[^:]*/,()=>'MERCHANTNAME1(24)='+m1).replace(/MERCHANTNAME2\(28\)=[^:]*/,()=>'MERCHANTNAME2(28)='+m2)}
+    if(l.startsWith('SIMBIN:'))return `SIMBIN:BANGLALINK=${s.bl}:GRAMEENPHONE=${s.gp}:ROBI=${s.robi}:OTHERS=${s.o}`;
+    if(l.startsWith('IPBIN:'))return 'IPBIN:'+ipbin(port);
+    if(l.startsWith('TXN:'))return l.replace(/:EMI=\d/,':EMI='+e.on);
+    if(l.startsWith('LIMIT:')&&e.on)return l.replace(/:[\d,]+$/,':'+e.ten);
+    return l});
+  return applyRules(out,row,{tid,mid,profile:pk,emi:e,sim:s.name,port,dba:val(row,'dbaCol'),addr:val(row,'addrCol')}).join('\r\n')}
+function applyRules(lines,row,ctx){
+  for(const r of RULES){if(!r.on||r.kind!=='patch')continue;
+    try{const f=r.fn||(r.fn=new Function('lines','row','ctx','idx',r.code));
+      const o=f(lines.slice(),row,ctx,p=>lines.findIndex(l=>l.startsWith(p)));
+      if(!Array.isArray(o)||o.some(x=>typeof x!=='string'))throw new Error('patch must return an array of strings');
+      lines=o.map(x=>x.replace(/[\r\n]+/g,' '));r.err=null}catch(e){r.err=e.message}}
+  return lines}
 
-        function processFile(file) {
-            document.getElementById('fileStatus').innerText = file.name;
-            document.getElementById('fileBadge').innerText = "Loaded";
+/* ---------- UI ---------- */
+function updateTable(){
+  const tb=$('tbody');
+  if(!raw.length){tb.innerHTML='<tr><td colspan="8" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr>';$('chips').innerHTML='<span class="chip">Data table (0)</span>';paintStats(null);return}
+  const cnt={std:0,onus:0,amex:0};
+  tb.innerHTML=raw.map((r,i)=>{const p=profile(r),e=emi(r);cnt[p.key]++;
+    return `<tr class="${i===act?'act':''}"><td>${i+1}</td><td class="mono">${esc(val(r,'tidCol'))}</td><td class="mono">${$('midCol').value?fmtMID(val(r,'midCol')):''}</td><td>${esc(sim(r).name)}</td><td>${esc(val(r,'portCol')||'2450')}</td>
+    <td><span class="chip" style="--c:${PR[p.key].c}">${PR[p.key].n}${p.clash?' ⚠':''}</span></td>
+    <td>${e.on?`<span class="on">ON (${e.ten})</span>`:'<span class="off">OFF</span>'}</td><td><button class="btn g" data-v="${i}">View</button></td></tr>`}).join('');
+  $('chips').innerHTML=`<span class="chip">${raw.length} terminals</span>`+Object.keys(PR).filter(k=>cnt[k]).map(k=>`<span class="chip" style="--c:${PR[k].c}">${cnt[k]} ${PR[k].n}</span>`).join('');
+  paintStats(cnt);preview(Math.min(act,raw.length-1));
+}
+function paintStats(c){const f=(n,l,col)=>`<div class="tile" style="--c:${col}"><b>${n}</b><span>${l}</span></div>`;
+  $('stats').innerHTML=f(raw.length,'Terminals loaded','var(--gold)')+f(c?c.std:0,'Standard parfile','var(--teal)')+f(c?c.onus:0,'ON-US only','var(--violet)')+f(c?c.amex:0,'AMEX only','var(--blue)')}
+function preview(i){if(!raw[i])return;act=i;
+  document.querySelectorAll('#tbody tr').forEach((tr,n)=>tr.classList.toggle('act',n===i));
+  $('pvTitle').textContent='('+(val(raw[i],'tidCol')||'TID_'+(i+1))+'.txt)';$('cfg').value=build(raw[i])}
+$('tbody').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b)preview(+b.dataset.v)});
+$('copyBtn').onclick=()=>{navigator.clipboard.writeText($('cfg').value).then(()=>toast('Config copied'),()=>{$('cfg').select();document.execCommand('copy');toast('Config copied')})};
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+$('saveBtn').onclick=()=>{if(!raw.length)return toast('Load an Excel file first');dl(new Blob([$('cfg').value],{type:'text/plain;charset=utf-8'}),(val(raw[act],'tidCol')||'TID_'+(act+1))+'.txt')};
+$('zipBtn').onclick=async()=>{
+  if(!raw.length)return toast('Load an Excel file first');
+  if(!$('tidCol').value||!$('midCol').value)return toast('Map at least the TID and MID columns');
+  const z=new JSZip();raw.forEach((r,i)=>z.file((val(r,'tidCol')||'TID_'+(i+1))+'.txt',build(r)));
+  dl(await z.generateAsync({type:'blob'}),'POS_Terminal_Configs.zip');toast('ZIP ready: '+raw.length+' configs')};
 
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
 
-                let headerIndex = 0;
-                for (let i = 0; i < Math.min(rows.length, 10); i++) {
-                    const rowStr = rows[i].map(c => String(c).trim().toUpperCase());
-                    if (rowStr.includes("TID") || rowStr.includes("MID") || rowStr.includes("SPECIAL FUNCTIONALITY")) {
-                        headerIndex = i;
-                        break;
-                    }
-                }
+/* ---------- AI assistant ---------- */
+let RULES=[],HIST=[];
+const AIK='pos_ai_v1';
+const getAI=()=>{try{return JSON.parse(localStorage.getItem(AIK)||'{}')}catch(e){return{}}};
+const SYS=`You are the built-in engineer of a City Bank POS "parfile" generator web page, and you can see and edit the page's complete source (given below as CURRENT PAGE SOURCE). The user loads an Excel sheet (one row per terminal); the page builds one parfile .txt per TID from a template parfile (3 slots: std, onus, amex) by replacing the dynamic parts. The user describes problems or asks for upgrades (wrong output, rows detected wrongly, new columns, new buttons, layout or design changes, new features...). You do the work and answer with JSON only.
+Parfile format: every line is NAME:field:field... e.g. HDT (TID=,MID=), TCT (ADDR1(36)..ADDR5(36), MERCHANTNAME1(24), MERCHANTNAME2(28)), SIMBIN, IPBIN, TXN (flags like EMI=0), LIMIT (last field = EMI tenure list), SLIPPRINT, CDTn:lo:hi:lens:SCHEME:flags (card range table; flags = string of 0/1, first digit 0 disables the range), EDT... std = all schemes on; onus = broad ranges of other schemes off; amex = only AMEX ranges on. Built-in detection reads the Special Functionality column. The user message holds a CONTEXT json: columns, mapping, distinct special values, sample rows, the selected row and its output, a summary of the three parfile templates, and the active rules.
+Reply format (JSON only, no markdown fences):
+{"reply":"short friendly explanation in the same language and style the user writes (Bangla in English letters, so answer the same way)","mapping":{"specCol":"exact column header"},"rules":[{"title":"short","kind":"patch","code":"..."}],"remove":["rule id"],"parfile_edits":[{"slot":"std|onus|amex|all","prefix":"TXN:","old":"EMI=0","new":"EMI=1"}],"edits":[{"old":"exact text from the page source","new":"replacement"}],"upgrade_title":"short title of the upgrade"}
+Every key except reply is optional. Choose the lightest tool:
+- mapping: keys tidCol, midCol, dbaCol, addrCol, simCol, portCol, specCol.
+- rules (per-terminal data quirks, kept outside the source). kind "patch": code is the BODY of function(lines,row,ctx,idx) returning the new lines array of strings; lines = parfile lines of ONE terminal after the normal build, row = Excel row object, ctx = {tid,mid,profile,emi:{on,ten},sim,port,dba,addr}, idx(prefix) = index of first line starting with prefix or -1; guard with conditions. kind "detect": BODY of function(row,text,base); text = upper-cased special functionality, base = built-in profile; return 'std','onus','amex' or undefined.
+- parfile_edits: change the template text itself: within every line that starts with prefix (empty prefix = all lines) every occurrence of old becomes new.
+- edits: change the page itself (logic, UI, design, new features). Each old must occur EXACTLY ONCE in the source, copy it exactly, keep it short but unique, use several small edits instead of rewriting. After edits are applied the page tests them in a sandbox, saves them and reloads itself with the Excel data kept. Rules for edits: never touch the <script id="boot"> element or "var V="; never touch the const DEFAULTS data (it is shown as OMITTED); keep window.__ready=true at the end of init and the __errs trap in the head; keep the dark navy theme and existing localStorage keys; only plain browser JS, no new external hosts except cdnjs.cloudflare.com and fonts.googleapis.com.
+Code must be plain ES2020, no eval, no network except the existing assistant call. Touch only what was asked. If the message is only a question or is ambiguous in a way that could corrupt configs, answer in "reply" and ask, with no changes.`;
+function saveRules(){try{localStorage.setItem('pos_rules_v1',JSON.stringify(RULES.map(({id,title,kind,code,on,at})=>({id,title,kind,code,on,at}))))}catch(e){}}
+function loadRules(){try{RULES=JSON.parse(localStorage.getItem('pos_rules_v1')||'[]')}catch(e){RULES=[]}}
+function addMsg(who,html){const d=document.createElement('div');d.className='m '+who;d.innerHTML=html;$('msgs').appendChild(d);$('msgs').scrollTop=1e9;return d}
+function renderRules(){$('rules').innerHTML=RULES.length?'<div class="tag">AI fixes in use</div>'+RULES.map(r=>`<div class="rule"><label><input type="checkbox" data-rt="${r.id}" ${r.on?'checked':''}> ${esc(r.title)}</label><button class="link" data-rd="${r.id}">remove</button></div>`).join(''):''}
+$('rules').addEventListener('click',e=>{const d=e.target.closest('[data-rd]'),t=e.target.closest('[data-rt]');
+  if(d)RULES=RULES.filter(r=>r.id!==d.dataset.rd);else if(t)RULES.find(r=>r.id===t.dataset.rt).on=t.checked;else return;
+  saveRules();renderRules();updateTable()});
+const MAPIDS=['tidCol','midCol','dbaCol','addrCol','simCol','portCol','specCol'];
+function aiContext(){
+  const sc=$('specCol').value,clip=s=>s.length>140?s.slice(0,140)+'…(+'+(s.length-140)+' chars)':s,map={};
+  MAPIDS.forEach(i=>map[i]=$(i).value);
+  return{columns:Object.keys(raw[0]||{}),mapping:map,rowCount:raw.length,
+    distinctSpecialFunctionalityValues:sc?[...new Set(raw.map(r=>r[sc]))].filter(Boolean).slice(0,40):[],
+    sampleRows:raw.slice(0,3),selectedRowIndex:act,selectedRow:raw[act]||null,
+    selectedRowProfile:raw[act]?profile(raw[act]):null,
+    selectedRowOutput:raw[act]?build(raw[act]).split('\r\n').map(clip):null,
+    parfiles:parSum(),
+    activeRules:RULES.map(({id,title,kind,code,on})=>({id,title,kind,code,on}))}}
+async function callClaude(messages){
+  const s=getAI();
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':s.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:s.model||'claude-sonnet-5-5',max_tokens:8000,system:[{type:'text',text:SYS},{type:'text',text:'CURRENT PAGE SOURCE:\n'+viewSrc(),cache_control:{type:'ephemeral'}}],messages})});
+  const j=await r.json();if(!r.ok)throw new Error(j.error&&j.error.message||('HTTP '+r.status));
+  return j.content.map(c=>c.text||'').join('')}
+function parseJ(t){const m=t.match(/\{[\s\S]*\}/);return JSON.parse(m?m[0]:t)}
+function setMap(m){const old={};for(const k in(m||{})){const s=$(k);if(s&&MAPIDS.includes(k)&&[...s.options].some(o=>o.value===m[k])){old[k]=s.value;s.value=m[k]}}return old}
+function viewSrc(){return SRC.replace(/const DEFAULTS=\{[^\n]*\};/,'const DEFAULTS=/*OMITTED parfile data*/{};')}
+function parSum(){const o={};for(const k in P)o[k]=P[k].text.split('\n').map(l=>/^C[DT]{2}\d+:/.test(l)?l.replace(':12,13,14,15,16,17,18,19',''):l.length>200?l.slice(0,100)+'…['+l.length+' chars]':l);return o}
+function curP(){const o={};for(const k in P)o[k]={...P[k]};return o}
+function parEdits(list){const errs=[];(list||[]).forEach((e,i)=>{
+  const ks=e.slot==='all'?Object.keys(P):[e.slot];let hit=0;
+  ks.forEach(k=>{if(!P[k])return;P[k]={...P[k],custom:true,at:new Date().toLocaleDateString('en-GB'),text:P[k].text.split('\n').map(l=>{
+    if((e.prefix&&!l.startsWith(e.prefix))||!e.old||!l.includes(e.old))return l;hit++;return l.split(e.old).join(e.new==null?'':e.new)}).join('\n')}});
+  if(!hit)errs.push('parfile edit '+(i+1)+': text not found')});
+  for(const k in P)if(!/^HDT:/.test(P[k].text)||!/\nTCT:/.test(P[k].text)||!/\nCDT0:/.test(P[k].text))errs.push(k+' parfile structure broken');
+  return errs}
+function tryApply(res){
+  const origR=RULES.slice(),origP=curP(),rm=res.remove||[],oldMap=setMap(res.mapping);
+  const undo=()=>{RULES=origR;P=origP;for(const k in oldMap)$(k).value=oldMap[k]};
+  const added=(res.rules||[]).map(r=>({id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),title:r.title||'AI fix',kind:r.kind==='detect'?'detect':'patch',code:String(r.code||''),on:true,at:new Date().toLocaleDateString('en-GB')}));
+  RULES=origR.filter(r=>!rm.includes(r.id)).concat(added);
+  const errs=parEdits(res.parfile_edits);
+  added.forEach(r=>{try{r.kind==='detect'?new Function('row','text','base',r.code):new Function('lines','row','ctx','idx',r.code)}catch(e){errs.push(r.title+': syntax '+e.message)}});
+  if(!errs.length)raw.forEach((row,i)=>{if(errs.length>2)return;try{if(!/^HDT:/.test(build(row)))errs.push('row '+(i+1)+': broken output')}catch(e){errs.push('row '+(i+1)+': '+e.message)}});
+  RULES.forEach(r=>{if(r.err)errs.push(r.title+': '+r.err)});
+  if(errs.length){undo();return{errs}}
+  return{added,undo}}
+/* ---- self-upgrade of the page source ---- */
+const bootOf=t=>((t.match(/<script id="boot">[\s\S]*?<\/script>/)||[''])[0]).replace(/V=\d+/,'');
+function stageSrc(edits){
+  let s=SRC;const errs=[];
+  edits.forEach((e,i)=>{const o=String(e.old||''),c=o?s.split(o).length-1:0;if(c!==1)errs.push('edit '+(i+1)+': old text found '+c+' times, it must be exactly 1');else s=s.replace(o,()=>String(e.new==null?'':e.new))});
+  if(errs.length)return{errs};
+  if((s.match(/var V=\d+/g)||[]).length!==1||bootOf(s)!==bootOf(SRC))return{errs:['the boot script must not be changed']};
+  const nv=Math.max(CURV,BOOT?BOOT.v:0)+1;
+  return{src:s.replace(/var V=\d+/,'var V='+nv),nv}}
+function sandbox(src){return new Promise(res=>{
+  const f=document.createElement('iframe');f.setAttribute('aria-hidden','true');f.style.cssText='position:fixed;left:-9999px;top:0;width:1200px;height:800px;border:0';f.srcdoc=src;document.body.appendChild(f);
+  let t=0;const iv=setInterval(()=>{t+=200;let w=null;try{w=f.contentWindow}catch(e){}
+    const done=v=>{clearInterval(iv);f.remove();res(v)};
+    if(w&&w.__errs&&w.__errs.length)done(w.__errs[0]);else if(w&&w.__ready)done(null);else if(t>12000)done('the page did not finish loading in the test')},200)})}
+function snap(){try{const map={};MAPIDS.forEach(i=>map[i]=$(i).value);sessionStorage.setItem('pos_state',JSON.stringify({raw,hd:HD,map,act,file:$('fileStatus').textContent,chat:$('msgs').innerHTML,hist:HIST}))}catch(e){}}
+function putOverride(o){try{localStorage.setItem('pos_src_v1',JSON.stringify(o));return true}catch(e){toast('Could not save the upgrade in this browser');return false}}
+function saveOverride(src,nv,title){const hist=((BOOT&&BOOT.hist)||[]).concat([{title:LIVE?BOOT.title:'Your original file',src:SRC}]).slice(-5);return putOverride({v:nv,title,src,hist})}
+function reloadSoon(){snap();setTimeout(()=>location.reload(),900)}
+function renderUps(){$('ups').innerHTML=`<div class="rule"><span>${LIVE?'<b>Live version '+CURV+'</b> · '+esc(BOOT.title):'Running your original file'}</span></div><div class="upb"><button class="btn g" id="upDl">Download index.html</button>${LIVE?'<button class="btn g" id="upUndo">Undo last upgrade</button><button class="btn g" id="upDisc">Back to my file</button>':''}</div>`}
+$('ups').addEventListener('click',e=>{const id=e.target.id;
+  if(id==='upDl')dl(new Blob([SRC],{type:'text/html;charset=utf-8'}),'index.html');
+  if(id==='upUndo'){const h=BOOT.hist||[],p=h[h.length-1];if(!p){localStorage.removeItem('pos_src_v1')}else{const nv=BOOT.v+1;putOverride({v:nv,title:'Undo of '+BOOT.title,src:p.src.replace(/var V=\d+/,'var V='+nv),hist:h.slice(0,-1)})}reloadSoon()}
+  if(id==='upDisc'){localStorage.removeItem('pos_src_v1');reloadSoon()}});
+function paintStatus(){const k=!!getAI().key;$('aiPill').innerHTML=`<i class="${k?'':'x'}"></i>${k?'AI ready':'AI needs key'}`;$('verPill').innerHTML=`<i class="${LIVE?'':'x'}"></i>${LIVE?'Live edits v'+CURV:'Original file'}`}
+document.querySelector('.sug').addEventListener('click',e=>{if(e.target.tagName==='BUTTON'){$('aiIn').value=e.target.textContent;$('aiIn').focus()}});
+async function send(){
+  const ta=$('aiIn'),txt=ta.value.trim();if(!txt||$('aiBtn').disabled)return;
+  if(!getAI().key){$('aiSet').open=true;toast('Paste your API key first');return}
+  ta.value='';addMsg('u',esc(txt));const w=addMsg('a','<span class="think">Claude is looking into it…</span>');$('aiBtn').disabled=true;
+  try{
+    const before=raw[act]?build(raw[act]).split('\r\n'):null;
+    const msgs=HIST.slice(-6).concat([{role:'user',content:'PROBLEM: '+txt+'\n\nCONTEXT:\n'+JSON.stringify(aiContext())}]);
+    let res,out,r,st=null;
+    for(let t=0;t<3;t++){
+      out=await callClaude(msgs);res=parseJ(out);r=tryApply(res);st=null;
+      if(!r.errs&&res.edits&&res.edits.length){
+        st=stageSrc(res.edits);let er=st.errs&&st.errs[0];
+        if(!er){w.innerHTML='<span class="think">Testing the upgrade in a safe sandbox…</span>';er=await sandbox(st.src);if(er)er='upgrade test failed: '+er}
+        if(er){r.undo();r={errs:[er]};st=null}}
+      if(!r.errs)break;
+      msgs.push({role:'assistant',content:out},{role:'user',content:'That failed validation: '+r.errs.join('; ')+'. Fix it and answer with JSON again.'});
+      w.innerHTML='<span class="think">Fixing a small error, retrying…</span>'}
+    if(r.errs){w.innerHTML=esc(res.reply||'')+'<span class="ok" style="color:#ff9b9b">Could not apply a safe fix: '+esc(r.errs[0])+'</span>';return}
+    saveRules();saveLS();renderRules();updateTable();renderLib();
+    let h=esc(res.reply||'Done.');
+    const did=r.added.length||res.mapping||(res.remove||[]).length||(res.parfile_edits||[]).length;
+    if(did||st){
+      h+='<span class="ok">✔ Applied'+(r.added.length?': '+r.added.map(x=>esc(x.title)).join(', '):'')+((res.parfile_edits||[]).length?' · parfile updated':'')+'</span>';
+      const after=raw[act]?build(raw[act]).split('\r\n'):null;
+      if(before&&after){const d=[];for(let i=0;i<Math.max(before.length,after.length)&&d.length<4;i++)if(before[i]!==after[i]){const c=s=>esc((s||'').slice(0,150));d.push(`<span class="d">− ${c(before[i])}</span>\n<span class="n">+ ${c(after[i])}</span>`)}
+        if(d.length)h+='<div class="diff">'+d.join('\n')+'</div>'}}
+    if(st)h+='<span class="ok">⚡ Page upgraded: '+esc(res.upgrade_title||'AI upgrade')+'. Reloading with your data kept…</span>';
+    w.innerHTML=h;HIST.push({role:'user',content:'PROBLEM: '+txt},{role:'assistant',content:res.reply||''});
+    if(st&&saveOverride(st.src,st.nv,res.upgrade_title||'AI upgrade'))reloadSoon();
+  }catch(e){w.innerHTML='Claude could not be reached: '+esc(e.message)+'<br><span class="tag">Check the API key, the model name and your internet connection.</span>'}
+  finally{$('aiBtn').disabled=false;$('msgs').scrollTop=1e9}}
+$('aiBtn').onclick=send;
+$('aiIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+$('aiSave').onclick=()=>{try{localStorage.setItem(AIK,JSON.stringify({key:$('aiKey').value.trim(),model:$('aiModel').value.trim()||'claude-sonnet-5-5'}));toast('Saved');$('aiSet').open=false;paintStatus()}catch(e){toast('Could not save in this browser')}};
+{const a=getAI();if(a.key)$('aiKey').value=a.key;if(a.model)$('aiModel').value=a.model}
 
-                const headers = rows[headerIndex].map(h => String(h).trim());
-                rawData = rows.slice(headerIndex + 1)
-                    .filter(r => r.some(cell => String(cell).trim() !== ""))
-                    .map(r => {
-                        let obj = {};
-                        headers.forEach((h, idx) => {
-                            if (h) obj[h] = String(r[idx] !== undefined ? r[idx] : "").trim();
-                        });
-                        return obj;
-                    });
-
-                populateColumns(headers.filter(Boolean));
-                updateTable();
-                if (rawData.length > 0) {
-                    previewRow(0);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function populateColumns(headers) {
-            const mapping = {
-                tidCol: ['TID'],
-                midCol: ['MID'],
-                dbaCol: ['DBA NAME', 'DBA'],
-                addrCol: ['ADDRESS'],
-                simCol: ['SIM CARRIER', 'SIM'],
-                portCol: ['PORT NUMBER', 'PORT'],
-                specCol: ['SPECIAL FUNCTIONALITY', 'EMI', 'FUNCTIONALITY']
-            };
-
-            Object.keys(mapping).forEach(selectId => {
-                const select = document.getElementById(selectId);
-                select.innerHTML = '<option value="">-- Select --</option>';
-                headers.forEach(h => {
-                    select.innerHTML += `<option value="${h}">${h}</option>`;
-                });
-
-                const matched = headers.find(h => mapping[selectId].includes(h.toUpperCase()));
-                if (matched) {
-                    select.value = matched;
-                }
-            });
-        }
-
-        function formatMID(mid) {
-            const clean = String(mid || "").replace(/\D/g, "");
-            return clean ? clean.padStart(15, '0') : "000000000000000";
-        }
-
-        function parseSimCarrier(row) {
-            const sCol = document.getElementById('simCol').value;
-            const simVal = (sCol && row[sCol]) ? String(row[sCol]).trim().toUpperCase() : "";
-
-            let gp = "0", robi = "0", bl = "0", others = "0";
-
-            if (simVal.includes("ROBI")) {
-                robi = "1";
-            } else if (simVal.includes("BL") || simVal.includes("BANGLALINK")) {
-                bl = "1";
-            } else if (simVal.includes("GP") || simVal.includes("GRAMEEN") || simVal === "") {
-                gp = "1"; 
-            } else {
-                others = "1";
-            }
-            return { gp, robi, bl, others, simName: simVal || "GP (Default)" };
-        }
-
-        function getIpBinByPort(port) {
-            const p = String(port).trim();
-            
-            if (p === "2400") {
-                return "IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2400,PORT2=2450:PORT1=2400,PORT2=2450:PORT1=2400,PORT2=2450:PORT1=2400,PORT2=2450";
-            } else if (p === "2350") {
-                return "IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2350,PORT2=2300:PORT1=2350,PORT2=2300:PORT1=2350,PORT2=2300:PORT1=2350,PORT2=2300";
-            } else if (p === "2300") {
-                return "IP1=192.168.95.7,IP2=192.168.95.8:IP1=192.168.95.102,IP2=192.168.95.103:IP1=192.168.94.251,IP2=192.168.94.252:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2300,PORT2=2350:PORT1=2300,PORT2=2350:PORT1=2300,PORT2=2350:PORT1=2300,PORT2=2350";
-            } else {
-                return "IP1=192.168.95.8,IP2=192.168.95.7:IP1=192.168.95.103,IP2=192.168.95.102:IP1=192.168.94.252,IP2=192.168.94.251:IP1=172.31.1.43,IP2=172.31.1.43:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400:PORT1=2450,PORT2=2400";
-            }
-        }
-
-        function parseEmiDetails(row) {
-            const sCol = document.getElementById('specCol').value;
-            const rawText = (sCol && row[sCol]) ? String(row[sCol]).toUpperCase() : Object.values(row).join(" ").toUpperCase();
-            
-            const allTenures = [3, 6, 9, 12, 18, 24, 30, 36];
-            let emiFlag = "0";
-            let tenureStr = "3,6,9,12,18,24,30,36";
-
-            if (rawText.includes("ENABLE EMI")) {
-                emiFlag = "1";
-                const rangeMatch = rawText.match(/(\d+)\s*-\s*(\d+)/);
-                if (rangeMatch) {
-                    const startM = parseInt(rangeMatch[1], 10);
-                    const endM = parseInt(rangeMatch[2], 10);
-                    const filtered = allTenures.filter(m => m >= startM && m <= endM);
-                    if (filtered.length > 0) {
-                        tenureStr = filtered.join(",");
-                    }
-                } else {
-                    const found = allTenures.filter(m => new RegExp(`\\b${m}\\b`).test(rawText));
-                    if (found.length > 0) {
-                        tenureStr = found.join(",");
-                    }
-                }
-            } else {
-                emiFlag = "0";
-            }
-
-            return { emiFlag, tenureStr };
-        }
-
-        function getWords(text) {
-            if (!text) return [];
-            return String(text).trim().split(/\s+/).filter(Boolean);
-        }
-
-        function buildConfigText(row) {
-            const tCol = document.getElementById('tidCol').value;
-            const mCol = document.getElementById('midCol').value;
-            const dCol = document.getElementById('dbaCol').value;
-            const aCol = document.getElementById('addrCol').value;
-            const pCol = document.getElementById('portCol').value;
-
-            const tid = (tCol ? row[tCol] : "").trim() || "18037816";
-            const mid = formatMID(mCol ? row[mCol] : "");
-
-            // 1. MERCHANT NAME: If DBA name has "C 1,2,3,4..." or "COUNTER 1,2,3,4...", send that part to MERCHANTNAME2
-            const dbaRaw = (dCol ? row[dCol] : "").trim();
-            let mLine1 = "", mLine2 = "";
-            let remainingDbaWords = [];
-            const dbaMaxChars = 21;
-
-            const counterOrCMatch = dbaRaw.match(/\b((?:C|COUNTER)\s+\d+(?:\s*,\s*\d+)*)\b/i);
-
-            if (counterOrCMatch) {
-                const movedPart = counterOrCMatch[1].trim().replace(/\s+/g, " ");
-                const baseDba = dbaRaw.replace(counterOrCMatch[0], " ").replace(/\s+/g, " ").trim();
-                const baseWords = getWords(baseDba);
-
-                let temp1 = "";
-                let idx = 0;
-                while (idx < baseWords.length) {
-                    let test = temp1 ? temp1 + " " + baseWords[idx] : baseWords[idx];
-                    if (test.length <= dbaMaxChars) {
-                        temp1 = test;
-                        idx++;
-                    } else {
-                        if (!temp1) { temp1 = baseWords[idx]; idx++; }
-                        break;
-                    }
-                }
-                mLine1 = temp1;
-                mLine2 = movedPart;
-
-                while (idx < baseWords.length) {
-                    remainingDbaWords.push(baseWords[idx]);
-                    idx++;
-                }
-            } else {
-                const dbaWords = getWords(dbaRaw);
-                let temp1 = "";
-                let i = 0;
-                while (i < dbaWords.length) {
-                    let test = temp1 ? temp1 + " " + dbaWords[i] : dbaWords[i];
-                    if (test.length <= dbaMaxChars) {
-                        temp1 = test;
-                        i++;
-                    } else {
-                        if (!temp1) { temp1 = dbaWords[i]; i++; }
-                        break;
-                    }
-                }
-                mLine1 = temp1;
-
-                let temp2 = "";
-                let j = i;
-                while (j < dbaWords.length) {
-                    let test = temp2 ? temp2 + " " + dbaWords[j] : dbaWords[j];
-                    if (test.length <= 28) {
-                        temp2 = test;
-                        j++;
-                    } else {
-                        if (!temp2) { temp2 = dbaWords[j]; j++; }
-                        break;
-                    }
-                }
-                mLine2 = temp2;
-                i = j;
-
-                while (i < dbaWords.length) {
-                    remainingDbaWords.push(dbaWords[i]);
-                    i++;
-                }
-            }
-
-            // 2. ADDRESS LINES (ADDR1 to ADDR5):
-            // If DBA overflowed, those words go into ADDR1. Excel address starts FRESH from the NEXT line (ADDR2)!
-            let addrLines = ["", "", "", "", ""];
-            let currentAddrLineIdx = 0;
-
-            if (remainingDbaWords.length > 0) {
-                addrLines[0] = remainingDbaWords.join(" ");
-                currentAddrLineIdx = 1;
-            }
-
-            const rawAddr = aCol ? (row[aCol] || "") : "";
-            const normalizedAddr = rawAddr.replace(/,\s*/g, ", ");
-            const addrWords = getWords(normalizedAddr);
-
-            let addrWordIdx = 0;
-            for (let l = currentAddrLineIdx; l < 5; l++) {
-                if (addrWordIdx >= addrWords.length) break;
-
-                if (l === 4) {
-                    let rem = addrWords.slice(addrWordIdx).join(" ");
-                    addrLines[4] = addrLines[4] ? addrLines[4] + " " + rem : rem;
-                    break;
-                }
-
-                let currentLine = "";
-                while (addrWordIdx < addrWords.length) {
-                    let word = addrWords[addrWordIdx];
-                    let test = currentLine ? currentLine + " " + word : word;
-                    if (test.length <= 29) {
-                        currentLine = test;
-                        addrWordIdx++;
-                    } else {
-                        if (!currentLine) { currentLine = word; addrWordIdx++; }
-                        break;
-                    }
-                }
-                currentLine = currentLine.replace(/,\s*$/, "").trim();
-                addrLines[l] = addrLines[l] ? addrLines[l] + " " + currentLine : currentLine;
-            }
-
-            if (addrWordIdx < addrWords.length) {
-                let rem = addrWords.slice(addrWordIdx).join(" ");
-                addrLines[4] = addrLines[4] ? addrLines[4] + " " + rem : rem;
-            }
-
-            const a1 = addrLines[0] || "";
-            const a2 = addrLines[1] || "";
-            const a3 = addrLines[2] || "";
-            const a4 = addrLines[3] || "";
-            const a5 = addrLines[4] || "";
-
-            const { gp, robi, bl, others } = parseSimCarrier(row);
-            const port = (pCol && row[pCol]) ? String(row[pCol]).trim() : "2450";
-            const ipbinStr = getIpBinByPort(port);
-            const { emiFlag, tenureStr } = parseEmiDetails(row);
-
-            return `HDT:TID=${tid}:MID=${mid}:1:1:1:0100:050:050:TK:115:90:100:6001000000
-TCT:ADDR1(36)=${a1}:ADDR2(36)=${a2}:ADDR3(36)=${a3}:ADDR4(36)=${a4}:ADDR5(36)=${a5}:MERCHANTNAME1(24)=${mLine1}:MERCHANTNAME2(28)=${mLine2}:2489:0000:0000:0000:0000:24896925
-SUPPORTBIN:ENGINEERNAME=xx:ENGINEERMOBILE=xx:OFFICERNAME=xx:OFFICERMOBILE=xx:EMAIL=test.city@citybank.com
-SIMBIN:BANGLALINK=${bl}:GRAMEENPHONE=${gp}:ROBI=${robi}:OTHERS=${others}
-IPBIN:${ipbinStr}
-TXN:SALE=1:VOID=1:QRSALE=0:MICRO ATM=0:EMI=${emiFlag}:LOUNGE ACCESS=0:PREAUTH=0:TIPADJUST=0:TIPADJUSTOFF=0:TIPADJUSTON=0:TIPWITHSALE=0:SETTLEMENT=1:BALANCE=0:REFUND=0:SHOWTXN=0:LOGON=1:TRAFFIC ENCRYPTION=1:SALECOMON=0:SALECOMPOFF=0:SALECOMPON=0:OFFLINE=0:REPORT=1:TXN HISTORY=0
-MRT:SALE:VOID:MICRO ATM:EMI SALE:BATCH REPORT+:REPRINT:SETTLEMENT:LOGON:LOUNGE ACCESS:PREAUTH:SHOWTXN:TIPADJUST:BALANCEINQ:CANCELLATION:ADMIN:SETTING
-PMTTYP:CHIP=1:NFC=1:MICRO ATM NFC=0:MAG=1:SALEMANUAL=0:EMI MANUAL=0:LOUNGE ACCESS MANUAL=0:MICRO ATM MANUAL=0:PREAUTHMANUAL=0:FALLBACK=0:LAST4DIGIT=0:CVV2INPUT=0
-LIMIT:999:999:001:99999999:50000:500000:500000:${tenureStr}
-CARDEMICHARGEBIN:3,3:6,4:9,6.5:12,8:18,10.5:24,13:36,18
-SLIPPRINT:MERCHANTCOPY=1:CUSTOMERCOPY=0:LOGON=1:CARDDETAILSREPORT=0:SETTLEDETAILSREPORT=0:ERRORTXN=1:PRINTTVR=0:PRINTTSI=0:QRDSPLAY=0:TRANSACTIONSOUND=0:CARDDETAILS=1:PAPERLESS=0
-PRINTLOGO:BANKLOGO=1:MERCHANTLOGO=0
-EXPMASKING:EXPMASKMC=0:EXPMASKCC=0:EXPMASKDT=0:EXPMASKPREAUTH=0:EXPMASKDISP=0:EXPMASKSHOWTXN=0:EXPMASKEMI=0:EXPMASKERRRP=0
-PANMASKING:PANMASKMC=1:PANMASKCC=0:PANMASKDT=1:PANMASKPREAUTH=1:PANMASKDISP=1:PANMASKSHOWTXN=1:PANMASKEMI=1:PANMASKERRRP=1
-EMIBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-LOUNGEBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-MICROATMBIN:5175550000000000,5175559999999999,16:5195070000000000,5195079999999999,16:5286310000000000,5286319999999999,16:4105200000000000,4105209999999999,16:300000000000000,399999999999999,15:6291104200000000,6291104299999999,16:6399960200000000,6399960299999999,16
-PRINTBIN:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-BINWISELIMIT:0001:99999999:4097650000000000,4097650099999999,16:4105171100000000,4105171199999999,16:4105171200000000,4105171299999999,16:4105172400000000,4105172499999999,16:4118060000000000,4118069999999999,16:4133200000000000,4133209999999999,16:4326430000000000,4326439999999999,16:4337270000000000,4337279999999999,16:4393380000000000,4393389999999999,16:4498550000000000,4498559999999999,16:4748670000000000,4748679999999999,16:4822000000000000,4822009999999999,16:4851400000000000,4851409999999999,16:4910170000000000,4910179999999999,16:5349387400000000,5349387499999999,16:5424128500000000,5424128599999999,16:6262964500000000,6262964599999999,16:341305000000000,341305999999999,15:341306000000000,341306999999999,15:370642000000000,370642999999999,15:371598000000000,371598999999999,15:376947000000000,376947999999999,15:376948000000000,376948999999999,15:376949000000000,376949999999999,15
-CDT0:400000000000:499999999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT1:409765000000:409765009999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT2:410520000000:410520999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT3:410517110000:410517119999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT4:410517120000:410517129999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT5:410517240000:410517249999:12,13,14,15,16,17,18,19:VISA:11111111111
-CTD6:411806000000:411806999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT7:413320000000:413320999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CTD8:421475050000:421475059999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT9:421475060000:421475069999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT10:429906000000:429906999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT11:430733000000:430733999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT12:432643000000:432643999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT13:433727000000:433727999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT14:435720000000:435720999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT15:439338000000:439338999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT16:439416000000:439416999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT17:449855000000:449855999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT18:458735010000:458735019999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT19:474867000000:474867999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT20:481761000000:481761999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT21:482200000000:482200999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT22:484398000000:484398999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT23:485140000000:485140999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT24:490939000000:490939999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT25:491017000000:491017999999:12,13,14,15,16,17,18,19:VISA:11111111111
-CDT26:500000000000:599999999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT27:517555000000:517555999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT28:519507000000:519507999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT29:519625000000:519625999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT30:528631000000:528631999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT31:531756000000:531756999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT32:533265000000:533265999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT33:534787000000:534787999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT34:534938740000:534938749999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT35:542412850000:542412859999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT36:545842000000:545842999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT37:222100000000:272099999999:12,13,14,15,16,17,18,19:MASTERCARD:11111111111
-CDT38:100000000000:199999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
-CDT39:900000000000:999999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
-CDT40:700000000000:799999999999:12,13,14,15,16,17,18,19:NPSB:1110111111011
-CDT41:600000000000:699999999999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT42:626296450000:626296459999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT43:629110420000:629110429999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT44:800000000000:899999999999:12,13,14,15,16,17,18,19:UPI:11111111111
-CDT45:300000000000:399999999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT46:341305000000:341305999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT47:341306000000:341306999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT48:342156000000:342156999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT49:370642000000:370642999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT50:371598000000:371598999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT51:371599000000:371599999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT52:376947000000:376947999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT53:376948000000:376948999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT54:376949000000:376949999999:12,13,14,15,16,17,18,19:AMEX:11111111111
-CDT55:639996000000:639996999999:12,13,14,15,16,17,18,19:TAKAPAY:11111111111
-CDT56:639996020000:639996029999:12,13,14,15,16,17,18,19:CITY TAKAPAY:11111111111
-EDT0:A0000000031010:VSDC:0010000000:D84004F800:D84000A800:000000:500001:99999999
-EDT1:A0000000032010:VISA ELECT:0010000000:D84004F800:D84000A800:000000:500001:99999999
-EDT2:A0000000033010:VISA INTERLINK:0010000000:D84004F800:D84000A800:000000:500001:99999999
-EDT3:A0000000041010:MASTERCARD:0000000000:F45084800C:F45084800C:000000:500000:99999999
-EDT4:A0000000043060:MAESTRO:0000000000:F45084800C:F45084800C:000000:500000:99999999
-EDT5:A00000033301:UPI:0000000000:D800FC9800:084000A800:000000:500000:99999999
-EDT6:A00000002501:AMEX:0010000000:DE00FC9800:DC50FC9800:00000:500001:99999999
-EDT7:A00000091010:TAKAPAY:0000000000:F45084800C:F45084800C:000000:500000:99999999
-OTHERS:HISTORYMAXDAYS=180:BACKHOMETIMEOUT=5:QRDISPLAYTIMEOUT=30`;
-        }
-
-        function updateTable() {
-            const tbody = document.querySelector('#dataTable tbody');
-            tbody.innerHTML = '';
-            const tCol = document.getElementById('tidCol').value;
-            const mCol = document.getElementById('midCol').value;
-            const dCol = document.getElementById('dbaCol').value;
-            const pCol = document.getElementById('portCol').value;
-
-            document.getElementById('rowCount').innerText = `Data Table (${rawData.length})`;
-
-            if (rawData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No data loaded. Drag & drop your Excel file above or tap to select.</td></tr>`;
-                return;
-            }
-
-            rawData.forEach((row, index) => {
-                const midFormatted = mCol ? formatMID(row[mCol]) : '';
-                const { simName } = parseSimCarrier(row);
-                const { emiFlag, tenureStr } = parseEmiDetails(row);
-                const emiBadge = emiFlag === "1" 
-                    ? `<span class="text-emerald-400 font-semibold">ON (${tenureStr})</span>` 
-                    : `<span class="text-slate-500">OFF (0)</span>`;
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/50">
-                        <td class="p-2.5 text-slate-400">${index + 1}</td>
-                        <td class="p-2.5 font-mono text-blue-400">${tCol ? (row[tCol] || '') : ''}</td>
-                        <td class="p-2.5 font-mono">${midFormatted}</td>
-                        <td class="p-2.5">${simName}</td>
-                        <td class="p-2.5">${pCol ? (row[pCol] || '') : '2450'}</td>
-                        <td class="p-2.5 text-[11px]">${emiBadge}</td>
-                        <td class="p-2.5">
-                            <button onclick="previewRow(${index})" class="bg-slate-800 hover:bg-blue-600 text-slate-200 px-2 py-1 rounded text-[11px] transition">View</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            if (rawData.length > 0) {
-                previewRow(activeRowIndex || 0);
-            }
-        }
-
-        function previewRow(index) {
-            if (!rawData[index]) return;
-            activeRowIndex = index;
-            const tCol = document.getElementById('tidCol').value;
-            const tid = (tCol ? rawData[index][tCol] : "").trim() || `TID_${index + 1}`;
-            document.getElementById('previewTitle').innerText = `(${tid}.txt)`;
-            document.getElementById('configPreview').value = buildConfigText(rawData[index]);
-        }
-
-        function copyPreview() {
-            const textarea = document.getElementById('configPreview');
-            textarea.select();
-            document.execCommand('copy');
-            alert("Config text copied to clipboard!");
-        }
-
-        function saveCurrentPreview() {
-            if (rawData.length === 0) {
-                alert("No data available to save!");
-                return;
-            }
-            const tCol = document.getElementById('tidCol').value;
-            const tid = (tCol ? rawData[activeRowIndex][tCol] : "").trim() || `TID_${activeRowIndex + 1}`;
-            const content = document.getElementById('configPreview').value;
-
-            const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${tid}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }
-
-        async function downloadZip() {
-            if (rawData.length === 0) {
-                alert("Please load an Excel sheet first!");
-                return;
-            }
-
-            const tCol = document.getElementById('tidCol').value;
-            const mCol = document.getElementById('midCol').value;
-            if (!tCol || !mCol) {
-                alert("Please map at least TID and MID columns!");
-                return;
-            }
-
-            const zip = new JSZip();
-            rawData.forEach((row, index) => {
-                const tid = (row[tCol] || `TID_${index + 1}`).trim();
-                const content = buildConfigText(row);
-                zip.file(`${tid}.txt`, content);
-            });
-
-            const blob = await zip.generateAsync({ type: "blob" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "POS_Terminal_Configs.zip";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }
-    </script>
+/* ---------- Init ---------- */
+let DEF={};
+(async()=>{
+  for(const k in DEFAULTS)DEF[k]={name:DEFAULTS[k].name,text:norm(await gunzip(DEFAULTS[k].gz))};
+  for(const k in DEF)P[k]={...DEF[k]};
+  try{const o=JSON.parse(localStorage.getItem('pos_parfiles_v1')||'{}');for(const k in o)if(PR[k])P[k]={...o[k],custom:true}}catch(e){}
+  loadRules();renderRules();renderLib();
+  let restored=false;
+  try{const st=JSON.parse(sessionStorage.getItem('pos_state')||'null');if(st){sessionStorage.removeItem('pos_state');restored=true;raw=st.raw||[];HD=st.hd||[];if(HD.length){populate(HD);for(const k in st.map)$(k).value=st.map[k]}act=st.act||0;$('fileStatus').textContent=st.file;if(raw.length)$('fileBadge').textContent='Loaded';$('msgs').innerHTML=st.chat;HIST=st.hist||[]}}catch(e){}
+  if(!restored)addMsg('a','Ami tomar parfile assistant, ar ei puro index.html ta ami dekhte pari. Kono problem ba notun upgrade lagle ekhane likho, jemon "ON US detect hocche na" ba "table e branch column dekhao". Ami nije fix kore nibo. Enter chap.');
+  updateTable();renderUps();paintStatus();window.__ready=true;
+})();
+</script>
 </body>
 </html>
