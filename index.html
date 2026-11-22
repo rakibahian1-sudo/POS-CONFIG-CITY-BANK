@@ -156,6 +156,8 @@ main{grid-template-columns:360px minmax(0,1fr)}
     <div class="f"><label>SIM Carrier (GP if blank)</label><select id="simCol"></select></div>
     <div class="f"><label>Port Number *</label><select id="portCol"></select></div>
     <div class="f"><label>Special Functionality * (picks the parfile + EMI)</label><select id="specCol"></select></div>
+    <div class="f"><label>QR column (any value except No/blank turns QR Sale on)</label><select id="qrCol"></select></div>
+    <div class="f"><label>Limit column (e.g. 19,99,999.99 or 199999999)</label><select id="limitCol"></select></div>
   </details></section>
 </div>
 
@@ -170,8 +172,8 @@ main{grid-template-columns:360px minmax(0,1fr)}
       <div class="chips" id="chips"><span class="chip">Data table (0)</span></div>
       <button class="btn go" id="zipBtn">Download ZIP (.txt configs)</button>
     </div>
-    <div class="tw"><table><thead><tr><th>#</th><th>TID</th><th>MID</th><th>SIM</th><th>Port</th><th>Parfile</th><th>EMI &amp; tenure</th><th>Standard features</th><th></th></tr></thead>
-    <tbody id="tbody"><tr><td colspan="9" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>TID</th><th>MID</th><th>SIM</th><th>Port</th><th>QR</th><th>Limit (paisa)</th><th>Parfile</th><th>EMI &amp; tenure</th><th>Standard features</th><th></th></tr></thead>
+    <tbody id="tbody"><tr><td colspan="11" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr></tbody></table></div>
   </section>
 
   <section class="card slipbox">
@@ -256,9 +258,9 @@ function processFile(file){
   rd.readAsArrayBuffer(file);
 }
 function populate(hd){
-  const map={tidCol:['TID'],midCol:['MID'],dbaCol:['DBA NAME','DBA'],addrCol:['ADDRESS'],simCol:['SIM CARRIER','SIM'],portCol:['PORT NUMBER','PORT'],specCol:['SPECIAL FUNCTIONALITY','EMI','FUNCTIONALITY']};
+  const map={tidCol:['TID'],midCol:['MID'],dbaCol:['DBA NAME','DBA'],addrCol:['ADDRESS'],simCol:['SIM CARRIER','SIM'],portCol:['PORT NUMBER','PORT'],specCol:['SPECIAL FUNCTIONALITY','EMI','FUNCTIONALITY'],qrCol:['QR','QR SALE','QR CODE'],limitCol:['LIMIT','TXN LIMIT','TRANSACTION LIMIT','LIMIT AMOUNT']};
   for(const id in map){const s=$(id);s.innerHTML='<option value="">-- Select --</option>'+hd.map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join('');
-    const m=hd.find(h=>map[id].includes(h.toUpperCase()));if(m)s.value=m;s.onchange=updateTable}
+    const m=hd.find(h=>map[id].includes(h.toUpperCase()))||(id==='qrCol'?hd.find(h=>/QR/i.test(h)):id==='limitCol'?hd.find(h=>/LIMIT/i.test(h)):undefined);if(m)s.value=m;s.onchange=updateTable}
 }
 
 /* ---------- Row logic ---------- */
@@ -302,11 +304,16 @@ const FEATS=[
  {lb:'Pre-Auth',re:/PRE[\s-]?AUTH/,line:'TXN:',on:['PREAUTH']},
  {lb:'Tip',re:/TIP\s*OPTION/,line:'TXN:',on:['TIPADJUST','TIPADJUSTOFF','TIPWITHSALE']},
  {lb:'Customer copy',re:/CUSTOMER\s*COPY/,line:'SLIPPRINT:',on:['CUSTOMERCOPY']},
- {lb:'Micro ATM',re:/MICRO\s*ATM/,line:'TXN:',on:['MICRO ATM']}];
+ {lb:'Micro ATM',re:/MICRO\s*ATM/,line:'TXN:',on:['MICRO ATM']},
+ {lb:'QR Sale',re:{test:(t,row)=>qrCol(row)},line:'TXN:',on:['QRSALE']},
+ {lb:'Custom limit',re:{test:(t,row)=>!!limitCol(row)},line:'LIMIT:',fn:(l,t,row)=>l.replace(/^(LIMIT:[^:]*:[^:]*:[^:]*:)99999999(?=:)/,(m,a)=>a+limitCol(row))}];
+function qrCol(row){const v=val(row,'qrCol').toUpperCase();return !!v&&!/^(NO|N|0|NIL|NA|N\/A|NONE|FALSE|-+)$/.test(v)}
+function limitCol(row){let v=val(row,'limitCol').replace(/[^\d.]/g,'');if(!v)return null;v=v.replace(/^(\d+)\.(\d*)$/,(m,a,b)=>a+(b+'00').slice(0,2));return /^[1-9]\d{0,11}$/.test(v)?v:null}
 const setFlags=(l,ns)=>ns.reduce((a,n)=>a.replace(new RegExp(':'+n+'=\\d'),':'+n+'=1'),l);
-function featList(row,pk){if(pk!=='std'||!$('specCol').value)return[];const t=specText(row).replace(/\s+/g,' ');return FEATS.filter(f=>f.re.test(t))}
-function feat(lines,row,pk){const fl=featList(row,pk);if(!fl.length)return lines;
-  return lines.map(l=>{fl.forEach(f=>{if(l.startsWith(f.line))l=f.fn?f.fn(l):setFlags(l,f.on)});return l})}
+const featText=row=>$('specCol').value?specText(row).replace(/\s+/g,' '):'';
+function featList(row,pk){if(pk!=='std')return[];const t=featText(row);return FEATS.filter(f=>f.re.test(t,row))}
+function feat(lines,row,pk){const fl=featList(row,pk);if(!fl.length)return lines;const t=featText(row);
+  return lines.map(l=>{fl.forEach(f=>{if(l.startsWith(f.line))l=f.fn?f.fn(l,t,row):setFlags(l,f.on)});return l})}
 function build(row){
   const tid=val(row,'tidCol')||'18037816',mid=fmtMID(val(row,'midCol'));
   const{m1,m2,L}=layout(val(row,'dbaCol'),val(row,'addrCol'));
@@ -333,10 +340,10 @@ function applyRules(lines,row,ctx){
 /* ---------- UI ---------- */
 function updateTable(){
   const tb=$('tbody');
-  if(!raw.length){tb.innerHTML='<tr><td colspan="9" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr>';$('chips').innerHTML='<span class="chip">Data table (0)</span>';paintStats(null);return}
+  if(!raw.length){tb.innerHTML='<tr><td colspan="11" class="empty">No data yet. Load your Excel file to see each terminal here.</td></tr>';$('chips').innerHTML='<span class="chip">Data table (0)</span>';paintStats(null);return}
   const cnt={std:0,onus:0,amex:0};
   tb.innerHTML=raw.map((r,i)=>{const p=profile(r),e=emi(r);cnt[p.key]++;
-    return `<tr class="${i===act?'act':''}"><td>${i+1}</td><td class="mono">${esc(val(r,'tidCol'))}</td><td class="mono">${$('midCol').value?fmtMID(val(r,'midCol')):''}</td><td>${esc(sim(r).name)}</td><td>${esc(val(r,'portCol')||'2450')}</td>
+    return `<tr class="${i===act?'act':''}"><td>${i+1}</td><td class="mono">${esc(val(r,'tidCol'))}</td><td class="mono">${$('midCol').value?fmtMID(val(r,'midCol')):''}</td><td>${esc(sim(r).name)}</td><td>${esc(val(r,'portCol')||'2450')}</td><td>${qrCol(r)?`<span class="chip" style="--c:var(--gold)">YES</span>`:'<span class="off">-</span>'}</td><td class="mono">${limitCol(r)?`<span class="${p.key==='std'?'on':'off'}">${limitCol(r)}</span>`:'<span class="off">-</span>'}</td>
     <td><span class="chip" style="--c:${PR[p.key].c}">${PR[p.key].n}${p.clash?' ⚠':''}</span></td>
     <td>${e.on?`<span class="on">ON (${e.ten})</span>`:'<span class="off">OFF</span>'}</td><td>${featList(r,p.key).map(f=>`<span class="chip" style="--c:var(--gold)">${f.lb}</span>`).join(' ')||'<span class="off">-</span>'}</td><td><button class="btn g" data-v="${i}">View</button></td></tr>`}).join('');
   $('chips').innerHTML=`<span class="chip">${raw.length} terminals</span>`+Object.keys(PR).filter(k=>cnt[k]).map(k=>`<span class="chip" style="--c:${PR[k].c}">${cnt[k]} ${PR[k].n}</span>`).join('');
@@ -379,7 +386,7 @@ function renderRules(){$('rules').innerHTML=RULES.length?'<div class="tag">AI fi
 $('rules').addEventListener('click',e=>{const d=e.target.closest('[data-rd]'),t=e.target.closest('[data-rt]');
   if(d)RULES=RULES.filter(r=>r.id!==d.dataset.rd);else if(t)RULES.find(r=>r.id===t.dataset.rt).on=t.checked;else return;
   saveRules();renderRules();updateTable()});
-const MAPIDS=['tidCol','midCol','dbaCol','addrCol','simCol','portCol','specCol'];
+const MAPIDS=['tidCol','midCol','dbaCol','addrCol','simCol','portCol','specCol','qrCol','limitCol'];
 function aiContext(){
   const sc=$('specCol').value,clip=s=>s.length>140?s.slice(0,140)+'…(+'+(s.length-140)+' chars)':s,map={};
   MAPIDS.forEach(i=>map[i]=$(i).value);
