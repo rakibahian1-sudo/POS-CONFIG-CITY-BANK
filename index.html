@@ -286,14 +286,45 @@ function profile(row){const t=specText(row);
   return{key,clash:amex&&onus}}
 const W=t=>String(t||'').trim().split(/\s+/).filter(Boolean);
 function fit(w,i,max){let s='';while(i<w.length){const t=s?s+' '+w[i]:w[i];if(t.length<=max){s=t;i++}else{if(!s){s=w[i];i++}break}}return[s,i]}
+/* word-safe wrap: fills up to n lines of max chars, never cuts a word (only a single word longer than max is hard-split) and never leaves & / AND / - at a line end */
+function wrap(tk,max,n){
+  tk=tk.slice();const lines=[];
+  while(lines.length<n&&tk.length){
+    const cur=[];
+    while(tk.length){
+      const t=tk[0],j=cur.length?cur.join(' ')+' '+t:t;
+      if(j.length<=max){cur.push(tk.shift());continue}
+      if(!cur.length){cur.push(t.slice(0,max));tk[0]=t.slice(max)}
+      break}
+    if(cur.length>1&&tk.length&&/^(&|AND|-|\+)$/i.test(cur[cur.length-1]))tk.unshift(cur.pop());
+    lines.push(cur.join(' ').replace(/[,\s]+$/,''))}
+  return{lines,rest:tk}}
+/* when the name needs two lines and fits in two, pick the break that balances them (BILKIS WAZI / SME FAIR 2026), never an orphan like "2026" */
+function split2(tk){let best=null;
+  for(let i=1;i<tk.length;i++){const a=tk.slice(0,i).join(' '),b=tk.slice(i).join(' ');
+    if(a.length>21||b.length>21||/^(&|AND|-|\+)$/i.test(tk[i-1]))continue;
+    const sc=Math.max(a.length,b.length)*100+Math.abs(a.length-b.length);
+    if(!best||sc<best.sc)best={sc,a:a.replace(/[,\s]+$/,''),b}}
+  return best}
+function nameLines(tk){const one=tk.join(' ');
+  if(one.length<=21)return{m1:one,m2:'',rest:[]};
+  const b=split2(tk);if(b)return{m1:b.a,m2:b.b,rest:[]};
+  const w=wrap(tk,21,2);return{m1:w.lines[0]||'',m2:w.lines[1]||'',rest:w.rest}}
 function layout(dba,addr){
-  let m1,m2,rest=[],i;const m=dba.match(/\b((?:C|COUNTER)\s+\d+(?:\s*,\s*\d+)*)\b/i);
-  if(m){const w=W(dba.replace(m[0],' '));[m1,i]=fit(w,0,21);m2=m[1].trim().replace(/\s+/g,' ');rest=w.slice(i)}
-  else{const w=W(dba);[m1,i]=fit(w,0,21);[m2,i]=fit(w,i,28);rest=w.slice(i)}
-  const L=['','','','',''];let l=0;if(rest.length){L[0]=rest.join(' ');l=1}
+  dba=String(dba||'').replace(/\s+/g,' ').trim();
+  const m=dba.match(/\b((?:C|COUNTER)\s+\d+(?:\s*,\s*\d+)*)\b/i);
+  let m1='',m2='',rest=[];
+  if(m){
+    const ctr=m[1].replace(/\s+/g,' ').trim(),name=dba.replace(m[0],' ').replace(/\s+/g,' ').trim();
+    if(name.length<=21&&ctr.length<=21){m1=name||ctr;m2=name?ctr:''}   /* name fits on line 1: counter alone on line 2, e.g. C 1 */
+    else{const tk=[];W(dba.replace(m[0],' \u0001 ')).forEach(x=>x==='\u0001'?(ctr.length<=21?tk.push(ctr):tk.push(...W(ctr))):tk.push(x));
+      const w=nameLines(tk);m1=w.m1;m2=w.m2;rest=w.rest}
+  }else{const w=nameLines(W(dba));m1=w.m1;m2=w.m2;rest=w.rest}
+  const L=['','','','',''];let l=0;
+  if(rest.length){const o=wrap(rest,29,4);o.lines.forEach((x,i)=>L[i]=x);l=o.lines.length;if(o.rest.length)L[4]=o.rest.join(' ')}
   const aw=W(String(addr||'').replace(/,\s*/g,', '));let k=0;
-  for(;l<4&&k<aw.length;l++){let s;[s,k]=fit(aw,k,29);L[l]=s.replace(/,\s*$/,'').trim()}
-  if(k<aw.length)L[4]=aw.slice(k).join(' ');
+  for(;l<4&&k<aw.length;l++){let t;[t,k]=fit(aw,k,29);L[l]=t.replace(/,\s*$/,'').trim()}
+  if(k<aw.length)L[4]=(L[4]?L[4]+' ':'')+aw.slice(k).join(' ');
   return{m1,m2,L}}
 
 /* ---- Standard-parfile features, read from Special Functionality (applied on top of whatever Standard parfile is loaded) ---- */
